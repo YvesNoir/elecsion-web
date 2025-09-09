@@ -1,9 +1,15 @@
 @import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+:root { color-scheme: light;
+    --page-container-max: 1500px;
 }
+
+body, main { color: #1C1C1C; background: #fff; }
+
+html, body { height: 100%; }
 
 @theme inline {
   --color-background: var(--background);
@@ -23,4 +29,23 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer components {
+    /* Botón principal (azul Elecsion) */
+    .btn-primary {
+        @apply inline-flex items-center justify-center gap-2 h-8 px-3 rounded-md
+        bg-[#384A93] text-white text-xs font-semibold shadow-sm
+        transition-colors duration-150 hover:bg-[#2e3d7a] active:translate-y-[0.5px];
+    }
+    .btn-primary:disabled {
+        @apply opacity-60 cursor-not-allowed;
+    }
+
+    /* (opcional) Botón “outline” por si querés igualar el “Ver detalle” */
+    .btn-outline {
+        @apply inline-flex items-center justify-center gap-2 h-8 px-3 rounded-md
+        border border-[#B5B5B5] text-[#1C1C1C] text-xs font-medium
+        bg-white hover:bg-[#f7f7f7] transition-colors duration-150;
+    }
 }
