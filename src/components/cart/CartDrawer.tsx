@@ -2,88 +2,86 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useCart } from "@/store/cart";
 
 function money(n: number, currency = "ARS") {
-    return new Intl.NumberFormat("es-AR", { style: "currency", currency }).format(
-        Number(n || 0)
-    );
+    return new Intl.NumberFormat("es-AR", { style: "currency", currency })
+        .format(Number(n || 0));
 }
 
 export default function CartDrawer({ top = 64 }: { top?: number }) {
-    // No asumimos la forma exacta del store para evitar crashes por nombres distintos
     const cart = useCart() as any;
 
-    // Estado de apertura del drawer
-    const isOpen: boolean = Boolean(cart?.isOpen ?? cart?.open ?? false);
+    const storeHasOpenState =
+        typeof cart?.isOpen === "boolean" || typeof cart?.open === "boolean";
+    const [localOpen, setLocalOpen] = useState(false);
 
-    // Líneas del carrito (acepta `lines` o `items`)
+    const isOpen: boolean = storeHasOpenState
+        ? Boolean(cart?.isOpen ?? cart?.open)
+        : localOpen;
+
     const lines: any[] = Array.isArray(cart?.lines)
         ? cart.lines
         : Array.isArray(cart?.items)
             ? cart.items
             : [];
 
-    // Subtotal (si el store no lo da, lo calculamos)
     const subtotal: number = useMemo(() => {
         if (typeof cart?.subtotal === "number") return cart.subtotal;
         return lines.reduce(
-            (acc, l) =>
-                acc +
-                Number(l?.price ?? 0) * Number(l?.qty ?? l?.quantity ?? 0),
+            (acc, l) => acc + Number(l?.price ?? 0) * Number(l?.qty ?? l?.quantity ?? 0),
             0
         );
     }, [cart?.subtotal, lines]);
 
-    // Cerrar drawer con varias rutas posibles
     const close = () => {
         if (typeof cart?.close === "function") cart.close();
-        else if (typeof cart?.closeDrawer === "function") cart.closeDrawer();
         else if (typeof cart?.setOpen === "function") cart.setOpen(false);
-        else if (typeof cart?.toggle === "function") cart.toggle();
-        else window.dispatchEvent(new CustomEvent("cart:close"));
+        else if (typeof cart?.toggle === "function" && isOpen) cart.toggle();
+        else setLocalOpen(false);
     };
 
-    // Cambiar cantidad (fallback a evento)
+    const open = () => {
+        if (typeof cart?.setOpen === "function") cart.setOpen(true);
+        else if (typeof cart?.open === "function") cart.open(true);
+        else if (typeof cart?.openDrawer === "function") cart.openDrawer();
+        else if (typeof cart?.toggle === "function" && !isOpen) cart.toggle();
+        else setLocalOpen(true);
+    };
+
     const setQty = (sku: string, next: number) => {
         const q = Math.max(0, next | 0);
         if (typeof cart?.setQty === "function") cart.setQty(sku, q);
         else if (typeof cart?.updateQty === "function") cart.updateQty(sku, q);
-        else window.dispatchEvent(
-                new CustomEvent("cart:setQty", { detail: { sku, qty: q } })
-            );
+        else window.dispatchEvent(new CustomEvent("cart:setQty", { detail: { sku, qty: q } }));
     };
 
-    // Eliminar ítem (fallback a evento)
     const removeItem = (sku: string) => {
         if (typeof cart?.removeItem === "function") cart.removeItem(sku);
         else if (typeof cart?.delete === "function") cart.delete(sku);
-        else window.dispatchEvent(
-                new CustomEvent("cart:remove", { detail: { sku } })
-            );
+        else window.dispatchEvent(new CustomEvent("cart:remove", { detail: { sku } }));
     };
 
-    // Soporte para el evento global "cart:open" del botón
     useEffect(() => {
-        const onOpen = () => {
-            if (typeof cart?.setOpen === "function") cart.setOpen(true);
-            else if (typeof cart?.open === "function") cart.open(true);
-            else if (typeof cart?.toggle === "function") cart.toggle();
-        };
+        const onOpen = () => open();
+        const onClose = () => close();
         window.addEventListener("cart:open", onOpen);
-        return () => window.removeEventListener("cart:open", onOpen);
-    }, [cart]);
+        window.addEventListener("cart:close", onClose);
+        return () => {
+            window.removeEventListener("cart:open", onOpen);
+            window.removeEventListener("cart:close", onClose);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen, cart]);
 
-    // Moneda a mostrar (primera línea o ARS)
-    const currency =
-        (lines[0]?.currency as string | undefined) ?? "ARS";
+    const currency = (lines[0]?.currency as string | undefined) ?? "ARS";
 
     return (
         <aside
             className={`fixed right-0 z-40 w-[360px] sm:w-[420px] bg-white border-l shadow-xl transition-transform duration-300 ${
                 isOpen ? "translate-x-0" : "translate-x-full"
-            }`}
+            } text-[#1C1C1C]`}
             style={{ top, bottom: 0 }}
             aria-hidden={!isOpen}
         >
@@ -102,7 +100,7 @@ export default function CartDrawer({ top = 64 }: { top?: number }) {
             {/* Body */}
             <div className="h-full overflow-y-auto px-4 pb-40 pt-3">
                 {lines.length === 0 ? (
-                    <p className="text-sm text-gray-500">Tu carrito está vacío.</p>
+                    <p className="text-sm">Tu carrito está vacío.</p>
                 ) : (
                     <ul className="space-y-3">
                         {lines.map((it: any) => {
@@ -129,7 +127,7 @@ export default function CartDrawer({ top = 64 }: { top?: number }) {
 
                                     <div className="min-w-0 flex-1">
                                         <div className="text-sm font-medium truncate">{sku}</div>
-                                        <div className="text-xs text-gray-500 truncate">
+                                        <div className="text-xs truncate text-[#646464]">
                                             {it?.name ?? ""}
                                         </div>
 
@@ -153,7 +151,6 @@ export default function CartDrawer({ top = 64 }: { top?: number }) {
                                                     +
                                                 </button>
                                             </div>
-
                                             <div className="text-sm font-medium">
                                                 {money(lineTotal, it?.currency ?? currency)}
                                             </div>
@@ -161,7 +158,7 @@ export default function CartDrawer({ top = 64 }: { top?: number }) {
                                     </div>
 
                                     <button
-                                        className="self-start rounded p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50"
+                                        className="self-start rounded p-1.5 text-[#1C1C1C] hover:text-red-600 hover:bg-red-50"
                                         onClick={() => removeItem(sku)}
                                         aria-label="Eliminar"
                                         title="Eliminar"
@@ -178,8 +175,10 @@ export default function CartDrawer({ top = 64 }: { top?: number }) {
             {/* Footer */}
             <div className="absolute inset-x-0 bottom-0 border-t bg-white px-4 py-3">
                 <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Subtotal (sin IVA)</span>
-                    <span className="font-semibold">{money(subtotal, currency)}</span>
+                    <span className="text-[#646464]">Subtotal (sin IVA)</span>
+                    <span className="font-semibold text-[#1C1C1C]">
+            {money(subtotal, currency)}
+          </span>
                 </div>
 
                 <Link
