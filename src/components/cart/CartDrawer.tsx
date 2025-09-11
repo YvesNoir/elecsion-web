@@ -184,6 +184,7 @@ export default function CartDrawer({ top = 64 }: { top?: number }) {
                 <Link
                     href="/carrito"
                     className="mt-3 inline-flex w-full items-center justify-center rounded-md bg-[#1C1C1C] px-3 py-2 text-sm font-medium text-white hover:bg-black/90"
+                    onClick={close}
                 >
                     Revisar y cotizar
                 </Link>

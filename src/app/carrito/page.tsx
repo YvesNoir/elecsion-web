@@ -2,346 +2,327 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCart } from "@/store/cart";
+import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
-/* ==================== Tipos ==================== */
-type Mode = "server" | "local";
-
-type Item = {
-    id: string;        // id del ítem (server) o productId (local)
-    productId: string;
-    name: string;
-    qty: number;
-    unit: number;      // precio unitario final
-    line: number;      // total de la línea
-};
-
-type OrderItemServer = {
-    id: string;
-    productId?: string;
-    name?: string;
-    quantity?: string | number | null;
-    unitPrice?: string | number | null;
-    taxRate?: string | number | null;
-    total?: string | number | null;
-};
-
-type OrderServer = {
-    items?: OrderItemServer[] | null;
-};
-
-type ApiOrdersResponse = {
-    order?: OrderServer | null;
-};
-
-type LocalItemRaw = {
-    productId: string;
-    name?: string;
-    price?: number | string | null;
-    unitPrice?: number | string | null;
-    qty?: number | string | null;
-    quantity?: number | string | null;
-};
-
-const LS_KEY = "elecsion_cart";
-
-/* ==================== Helpers ==================== */
-function toNumber(x: unknown): number {
-    if (typeof x === "number") return Number.isFinite(x) ? x : 0;
-    const s = (x as { toString?: () => string } | null | undefined)?.toString?.();
-    if (!s) return 0;
-
-    const cleaned = s.replace(/\s/g, "").replace(/[^\d.,-]/g, "");
-    const normalized =
-        cleaned.includes(",") && cleaned.lastIndexOf(",") > cleaned.lastIndexOf(".")
-            ? cleaned.replace(/\./g, "").replace(",", ".")
-            : cleaned;
-    const n = Number(normalized);
-    return Number.isFinite(n) ? n : 0;
+function money(n: number, currency = "ARS") {
+    return new Intl.NumberFormat("es-AR", { style: "currency", currency })
+        .format(Number(n || 0));
 }
 
-function toQty(x: unknown): number {
-    const n = Math.floor(toNumber(x));
-    return n > 0 ? n : 1;
-}
-
-function fmtAr(n: number): string {
-    return n.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-/* ============ Carga desde server / local ============ */
-async function loadFromServer(): Promise<Item[] | null> {
-    try {
-        const res = await fetch("/api/orders", { cache: "no-store" });
-        if (!res.ok) return null;
-
-        const data = (await res.json()) as ApiOrdersResponse;
-        const items = data.order?.items ?? [];
-        if (!Array.isArray(items)) return [];
-
-        return items.map((it) => {
-            const q = toQty(it.quantity);
-            const unitPrice = toNumber(it.unitPrice);
-            const taxRate = toNumber(it.taxRate);
-            const total = toNumber(it.total) || q * unitPrice * (1 + taxRate);
-            const unitFinal = total / q;
-
-            return {
-                id: String(it.id),
-                productId: String(it.productId ?? it.id),
-                name: String(it.name ?? ""),
-                qty: q,
-                unit: unitFinal,
-                line: total,
-            };
-        });
-    } catch {
-        return null;
-    }
-}
-
-function loadFromLocal(): Item[] {
-    try {
-        const raw = localStorage.getItem(LS_KEY);
-        if (!raw) return [];
-        const arr = JSON.parse(raw) as unknown;
-        if (!Array.isArray(arr)) return [];
-
-        return (arr as LocalItemRaw[])
-            .map((it) => {
-                const productId = it.productId?.toString?.() ?? "";
-                const name = (it.name ?? "").toString();
-                if (!productId || !name) return null;
-
-                const qty = toQty(it.qty ?? it.quantity);
-                const unit = toNumber(it.price ?? it.unitPrice);
-                return {
-                    id: productId,
-                    productId,
-                    name,
-                    qty,
-                    unit,
-                    line: unit * qty,
-                } as Item;
-            })
-            .filter((x): x is Item => !!x);
-    } catch {
-        return [];
-    }
-}
-
-/* ==================== Página ==================== */
 export default function CartPage() {
-    const [mode, setMode] = useState<Mode>("local");
-    const [items, setItems] = useState<Item[]>([]);
-    const [sending, setSending] = useState(false);
+    const { lines, setQty, removeItem, subtotal, clear } = useCart();
+    const { data: session } = useSession();
+    const router = useRouter();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    // Calculamos IVA (21%) y total
+    const iva = subtotal * 0.21;
+    const total = subtotal + iva;
 
-    const subtotal = useMemo(() => items.reduce((s, i) => s + i.line, 0), [items]);
-
-    async function refresh(): Promise<void> {
-        const serverItems = await loadFromServer();
-        if (serverItems) {
-            setItems(serverItems);
-            setMode("server");
-            return;
-        }
-        setItems(loadFromLocal());
-        setMode("local");
-    }
-
-    useEffect(() => {
-        void refresh();
-        const handler = () => void refresh();
-        window.addEventListener("cart:updated", handler as EventListener);
-        return () => window.removeEventListener("cart:updated", handler as EventListener);
-    }, []);
-
-    async function updateQty(id: string, delta: number): Promise<void> {
-        if (mode === "server") {
-            const row = items.find((i) => i.id === id);
-            if (!row) return;
-            const next = Math.max(1, row.qty + delta);
-            try {
-                await fetch("/api/orders", {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: "updateQty", itemId: id, quantity: next }),
-                });
-            } finally {
-                void refresh();
-            }
+    const handleRequestQuote = async () => {
+        // Verificar que el usuario esté logueado
+        if (!session?.user) {
+            alert("Debes iniciar sesión para solicitar una cotización");
+            router.push("/login?callbackUrl=/carrito");
             return;
         }
 
-        // local
-        const current = loadFromLocal();
-        const nextLocal = current.map((i) =>
-            i.id === id ? { ...i, qty: Math.max(1, i.qty + delta), line: i.unit * Math.max(1, i.qty + delta) } : i
-        );
-        localStorage.setItem(
-            LS_KEY,
-            JSON.stringify(nextLocal.map(({ productId, name, unit, qty }) => ({ productId, name, price: unit, qty })))
-        );
-        window.dispatchEvent(new CustomEvent("cart:updated"));
-        setItems(nextLocal);
-    }
-
-    async function removeItem(id: string): Promise<void> {
-        if (mode === "server") {
-            try {
-                await fetch("/api/orders", {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: "removeItem", itemId: id }),
-                });
-            } finally {
-                void refresh();
-            }
+        // Verificar que hay productos en el carrito
+        if (lines.length === 0) {
+            alert("Tu carrito está vacío");
             return;
         }
-        const next = loadFromLocal().filter((i) => i.id !== id);
-        localStorage.setItem(
-            LS_KEY,
-            JSON.stringify(next.map(({ productId, name, unit, qty }) => ({ productId, name, price: unit, qty })))
-        );
-        window.dispatchEvent(new CustomEvent("cart:updated"));
-        setItems(next);
-    }
 
-    async function submitOrder(): Promise<void> {
-        if (mode !== "server") return;
-        setSending(true);
+        setIsSubmitting(true);
+        
         try {
-            const res = await fetch("/api/orders", {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "submit" }),
+            // Preparar los datos del carrito
+            const cartItems = lines.map(line => ({
+                id: line.id,
+                name: line.name,
+                price: line.price,
+                quantity: line.qty,
+                sku: line.sku
+            }));
+
+            // Llamar a la API
+            const response = await fetch('/api/orders/quote', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    items: cartItems,
+                    quoteMessage: `Solicitud de cotización desde el carrito. Total estimado: ${money(total)}`,
+                    quoteName: session.user.name,
+                    quoteEmail: session.user.email,
+                    quotePhone: null // El usuario puede completar esto luego
+                }),
             });
-            if (!res.ok) {
-                const data = await res.json().catch(() => ({}));
-                alert(data?.error || "No pudimos enviar tu pedido.");
-                return;
+
+            const result = await response.json();
+
+            if (response.ok) {
+                // Mostrar mensaje de éxito
+                alert(`✅ ${result.message}\n\nCódigo de cotización: ${result.order.code}\nTotal: ${money(result.order.total)}`);
+                
+                // Limpiar el carrito
+                clear();
+                
+                // Redirigir a mis cotizaciones
+                router.push("/mis-cotizaciones");
+            } else {
+                alert(`Error: ${result.error}`);
             }
-            // Éxito
-            window.location.href = "/carrito?status=ok";
-        } catch (e) {
-            console.error(e);
-            alert("Ocurrió un error al enviar el pedido.");
+        } catch (error) {
+            console.error('Error al solicitar cotización:', error);
+            alert("Error al solicitar cotización. Por favor, intenta nuevamente.");
         } finally {
-            setSending(false);
+            setIsSubmitting(false);
         }
+    };
+
+    if (lines.length === 0) {
+        return (
+            <div>
+                <div className="mb-4">
+                    <Link 
+                        href="/catalogo" 
+                        className="text-[#384A93] hover:underline text-sm"
+                    >
+                        ← Continuar Navegando
+                    </Link>
+                </div>
+                
+                <div className="bg-white rounded-lg border border-[#B5B5B5]/40 p-8 text-center">
+                    <h1 className="text-2xl font-semibold text-[#1C1C1C] mb-4">Carrito</h1>
+                    <p className="text-[#646464] mb-4">Tu carrito está vacío.</p>
+                    <Link 
+                        href="/catalogo"
+                        className="inline-flex items-center px-4 py-2 bg-[#384A93] text-white rounded-md hover:bg-[#2e3d7a] transition-colors"
+                    >
+                        Ver Catálogo
+                    </Link>
+                </div>
+            </div>
+        );
     }
 
     return (
-        <main className="max-w-6xl mx-auto px-4 py-8">
-            <h1 className="text-2xl font-semibold text-[#1C1C1C] mb-6">Tu carrito</h1>
+        <>
+            <div className="mb-4">
+                <Link 
+                    href="/catalogo" 
+                    className="text-[#384A93] hover:underline text-sm"
+                >
+                    ← Continuar Navegando
+                </Link>
+            </div>
 
-            {items.length === 0 ? (
-                <div className="rounded-lg border border-[#B5B5B5]/40 bg-white p-6 text-[#646464]">
-                    Tu carrito está vacío.{" "}
-                    <Link href="/tienda" className="text-[#384A93] hover:underline">
-                        Ir a la tienda
-                    </Link>
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Columna izquierda: listado */}
-                    <section className="lg:col-span-2 rounded-lg border border-[#B5B5B5]/40 bg-white">
-                        <ul className="divide-y divide-[#B5B5B5]/30">
-                            {items.map((it) => (
-                                <li key={it.id} className="p-4">
-                                    <div className="flex items-start justify-between gap-4">
-                                        <div className="flex-1">
-                                            <div className="font-medium text-[#1C1C1C]">{it.name}</div>
-                                            <div className="text-sm text-[#646464] mt-1">Unit. $ {fmtAr(it.unit)}</div>
-                                        </div>
-
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={() => void updateQty(it.id, -1)}
-                                                className="h-8 w-8 grid place-items-center rounded border border-[#B5B5B5]/60 hover:bg-[#f5f5f7]"
-                                                aria-label="Restar"
-                                                type="button"
-                                            >
-                                                –
-                                            </button>
-                                            <span className="w-8 text-center">{it.qty}</span>
-                                            <button
-                                                onClick={() => void updateQty(it.id, +1)}
-                                                className="h-8 w-8 grid place-items-center rounded border border-[#B5B5B5]/60 hover:bg-[#f5f5f7]"
-                                                aria-label="Sumar"
-                                                type="button"
-                                            >
-                                                +
-                                            </button>
-                                        </div>
-
-                                        <div className="w-28 text-right font-medium text-[#1C1C1C]">$ {fmtAr(it.line)}</div>
-
-                                        <button
-                                            onClick={() => void removeItem(it.id)}
-                                            className="text-sm text-[#646464] hover:text-[#384A93]"
-                                            type="button"
-                                        >
-                                            Quitar
-                                        </button>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-                        <div className="p-4 border-t border-[#B5B5B5]/40 flex items-center justify-between">
-                            <Link href="/tienda" className="text-sm text-[#384A93] hover:underline">
-                                ← Seguir comprando
-                            </Link>
-                            <div className="text-sm text-[#646464]">
-                                {items.length} {items.length === 1 ? "artículo" : "artículos"}
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* Columna derecha: resumen */}
-                    <aside className="rounded-lg border border-[#B5B5B5]/40 bg-white p-4 h-fit">
-                        <h2 className="text-lg font-semibold text-[#1C1C1C] mb-3">Resumen</h2>
-
-                        <div className="space-y-2 text-sm">
-                            <div className="flex items-center justify-between">
-                                <span className="text-[#646464]">Subtotal</span>
-                                <span className="text-[#1C1C1C]">$ {fmtAr(subtotal)}</span>
-                            </div>
-                            {/* Si después definimos envíos/impuestos, se agregan acá */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                {/* Tabla de productos - 3/4 del ancho */}
+                <div className="lg:col-span-3">
+                    <div className="bg-white rounded-lg border border-[#B5B5B5]/40 overflow-hidden">
+                        <div className="px-6 py-4 border-b border-[#B5B5B5]/40">
+                            <h1 className="text-xl font-semibold text-[#1C1C1C]">
+                                Carrito <span className="text-[#646464] font-normal">/ {lines.length} SKU - {lines.reduce((acc, line) => acc + line.qty, 0)} Productos</span>
+                            </h1>
                         </div>
 
-                        <div className="mt-4">
-                            {mode === "server" ? (
-                                <button
-                                    onClick={() => void submitOrder()}
-                                    disabled={sending || items.length === 0}
-                                    className="w-full h-10 rounded-md bg-[#384A93] text-white text-sm font-medium hover:bg-[#2e3d7a] disabled:opacity-60"
-                                    type="button"
-                                >
-                                    {sending ? "Enviando..." : "Enviar pedido"}
-                                </button>
-                            ) : (
-                                <div className="text-sm text-[#646464]">
-                                    <p className="mb-2">
-                                        Para enviar tu pedido, primero{" "}
-                                        <Link href="/login" className="text-[#384A93] hover:underline">
-                                            iniciá sesión
-                                        </Link>
-                                        .
-                                    </p>
-                                    <Link
-                                        href="/login"
-                                        className="inline-flex h-10 items-center justify-center rounded-md bg-[#384A93] px-4 text-white text-sm hover:bg-[#2e3d7a]"
-                                    >
-                                        Iniciar sesión
-                                    </Link>
+                        {/* Tabla de productos */}
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-[#F5F5F7] border-b border-[#B5B5B5]/40">
+                                    <tr className="text-left">
+                                        <th className="px-6 py-3 text-sm font-medium text-[#646464]">SKU/Description</th>
+                                        <th className="px-3 py-3 text-sm font-medium text-[#646464] text-center w-20">Stock</th>
+                                        <th className="px-3 py-3 text-sm font-medium text-[#646464] text-center w-28">Precio Unit S/IVA</th>
+                                        <th className="px-3 py-3 text-sm font-medium text-[#646464] text-center w-16">IVA</th>
+                                        <th className="px-3 py-3 text-sm font-medium text-[#646464] text-center w-20">Cliente</th>
+                                        <th className="px-3 py-3 text-sm font-medium text-[#646464] text-center w-24">Cantidad</th>
+                                        <th className="px-3 py-3 text-sm font-medium text-[#646464] text-center w-28">Subtotal</th>
+                                        <th className="px-3 py-3 w-12"></th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-[#B5B5B5]/20">
+                                    {lines.map((line) => {
+                                        const priceWithoutTax = line.price / 1.21; // Asumiendo 21% IVA incluido
+                                        const lineTotal = line.price * line.qty;
+                                        const img = `/product-images/${line.sku}.jpg`;
+
+                                        return (
+                                            <tr key={line.sku} className="hover:bg-[#F5F5F7]/50">
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="w-12 h-12 bg-[#F5F5F7] border border-[#B5B5B5]/40 rounded flex-shrink-0 overflow-hidden">
+                                                            <img
+                                                                src={img}
+                                                                alt={line.sku}
+                                                                className="w-full h-full object-cover"
+                                                                onError={(e) => {
+                                                                    const el = e.currentTarget as HTMLImageElement;
+                                                                    el.onerror = null;
+                                                                    el.src = "/product-images/placeholder.jpg";
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <div className="font-medium text-[#1C1C1C] text-sm">
+                                                                {line.sku}
+                                                            </div>
+                                                            <div className="text-xs text-[#646464] mt-1 line-clamp-2">
+                                                                {line.name}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-3 py-4 text-center">
+                                                    <div className="flex items-center justify-center gap-1">
+                                                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                                        <span className="text-xs text-green-600">Disponible</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-3 py-4 text-center">
+                                                    <div className="text-sm font-medium text-[#1C1C1C]">
+                                                        {money(priceWithoutTax)}
+                                                    </div>
+                                                    <div className="text-xs text-[#646464]">
+                                                        {line.unit || "U"}
+                                                    </div>
+                                                </td>
+                                                <td className="px-3 py-4 text-center">
+                                                    <span className="text-sm text-[#646464]">21%</span>
+                                                </td>
+                                                <td className="px-3 py-4 text-center">
+                                                    <span className="text-sm text-[#646464]">-</span>
+                                                </td>
+                                                <td className="px-3 py-4">
+                                                    <div className="flex items-center justify-center gap-1">
+                                                        <button
+                                                            onClick={() => setQty(line.id, line.qty - 1)}
+                                                            className="w-6 h-6 flex items-center justify-center border border-[#B5B5B5] rounded hover:bg-[#F5F5F7] text-sm"
+                                                            disabled={line.qty <= 1}
+                                                        >
+                                                            -
+                                                        </button>
+                                                        <div className="w-12 text-center">
+                                                            <input
+                                                                type="number"
+                                                                value={line.qty}
+                                                                onChange={(e) => setQty(line.id, parseInt(e.target.value) || 1)}
+                                                                className="w-full text-center text-sm border-none outline-none bg-transparent"
+                                                                min="1"
+                                                            />
+                                                        </div>
+                                                        <button
+                                                            onClick={() => setQty(line.id, line.qty + 1)}
+                                                            className="w-6 h-6 flex items-center justify-center border border-[#B5B5B5] rounded hover:bg-[#F5F5F7] text-sm"
+                                                        >
+                                                            +
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                                <td className="px-3 py-4 text-center">
+                                                    <div className="font-medium text-[#1C1C1C] text-sm">
+                                                        {money(lineTotal)}
+                                                    </div>
+                                                </td>
+                                                <td className="px-3 py-4 text-center">
+                                                    <button
+                                                        onClick={() => removeItem(line.id)}
+                                                        className="w-8 h-8 flex items-center justify-center text-[#646464] hover:text-red-600 hover:bg-red-50 rounded"
+                                                        title="Eliminar producto"
+                                                    >
+                                                        🗑️
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Información adicional */}
+                        <div className="px-6 py-4 bg-orange-50 border-t border-[#B5B5B5]/40">
+                            <div className="flex items-start gap-2">
+                                <div className="w-5 h-5 bg-orange-400 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <span className="text-white text-xs">!</span>
                                 </div>
-                            )}
+                                <div className="text-sm text-orange-700">
+                                    <div className="font-medium mb-1">Se está aplicando tu descuento especial por ser cliente</div>
+                                    <div>El valor total puede variar, ya que no contempla los valores de percepción de AFIP</div>
+                                </div>
+                            </div>
                         </div>
-                    </aside>
+
+                        {/* Botón actualizar carrito */}
+                        <div className="px-6 py-4 border-t border-[#B5B5B5]/40">
+                            <button className="px-4 py-2 text-sm text-[#384A93] border border-[#384A93] rounded hover:bg-[#384A93] hover:text-white transition-colors">
+                                🔄 Actualizar carrito
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            )}
-        </main>
+
+                {/* Sidebar derecho - Resumen de compras */}
+                <div className="lg:col-span-1">
+                    <div className="bg-white rounded-lg border border-[#B5B5B5]/40 p-6">
+                        <h2 className="text-lg font-semibold text-[#1C1C1C] mb-4">Resumen de Compras</h2>
+                        
+                        <div className="space-y-3 mb-6">
+                            <div className="text-sm text-[#646464] mb-3">
+                                Calcular costo de envío
+                            </div>
+                            
+                            <div className="flex justify-between text-sm">
+                                <span className="text-[#646464]">Subtotal</span>
+                                <span className="font-medium text-[#1C1C1C]">{money(subtotal)}</span>
+                            </div>
+                            
+                            <div className="flex justify-between text-sm">
+                                <span className="text-[#646464]">Envío (Envío a convenir)</span>
+                                <span className="text-[#646464]">{money(0)}</span>
+                            </div>
+                            
+                            <div className="flex justify-between text-sm">
+                                <span className="text-[#646464]">IVA</span>
+                                <span className="text-[#646464]">{money(iva)}</span>
+                            </div>
+                            
+                            <div className="border-t border-[#B5B5B5]/40 pt-3">
+                                <div className="flex justify-between">
+                                    <span className="font-semibold text-[#1C1C1C]">Total de Orden</span>
+                                    <span className="font-semibold text-[#1C1C1C] text-lg">{money(total)}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={handleRequestQuote}
+                            disabled={isSubmitting}
+                            className="w-full bg-[#384A93] text-white py-3 rounded-md font-medium hover:bg-[#2e3d7a] disabled:opacity-60 transition-colors"
+                        >
+                            {isSubmitting ? "Procesando..." : "Pedir una Cotización"}
+                        </button>
+                    </div>
+
+                    {/* Nota informativa */}
+                    <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                        <div className="flex items-start gap-2">
+                            <div className="w-4 h-4 bg-orange-400 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <span className="text-white text-xs">📧</span>
+                            </div>
+                            <div className="text-sm text-orange-700">
+                                Envío gratis según mínimo de compra y tu localidad de entrega
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </>
     );
 }

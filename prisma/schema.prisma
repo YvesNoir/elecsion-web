@@ -3,9 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider          = "postgresql"
-  url               = env("DATABASE_URL")
-  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 /// *
@@ -13,15 +12,16 @@ datasource db {
 ///  * Usuarios y relaciones
 ///  * =========================
 model User {
-  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id               String             @id @default(cuid())
   name             String?
-  email            String             @unique @db.Citext
+  email            String             @unique
   passwordHash     String?            @map("password_hash")
+  phone            String?
   role             UserRole           @default(CLIENT)
   isActive         Boolean?           @map("is_active")
   createdAt        DateTime           @default(now()) @map("created_at")
   updatedAt        DateTime           @updatedAt @map("updated_at")
-  assignedSellerId String?            @map("assigned_seller_id") @db.Uuid
+  assignedSellerId String?            @map("assigned_seller_id")
   AnalyticsEvent   AnalyticsEvent[]
   orders           Order[]            @relation("ClientOrders")
   salesOrders      Order[]            @relation("SellerOrders")
@@ -34,7 +34,7 @@ model User {
 }
 
 model Brand {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id        String   @id @default(cuid())
   code      Int?     @unique
   name      String
   slug      String   @unique
@@ -46,10 +46,10 @@ model Brand {
 }
 
 model Category {
-  id        String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id        String     @id @default(cuid())
   name      String
   slug      String     @unique
-  parentId  String?    @map("parent_id") @db.Uuid
+  parentId  String?    @map("parent_id")
   createdAt DateTime   @default(now()) @map("created_at")
   parent    Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
   children  Category[] @relation("CategoryToCategory")
@@ -59,12 +59,12 @@ model Category {
 }
 
 model Product {
-  id                 String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id                 String                   @id @default(cuid())
   sku                String?                  @unique
   name               String
   slug               String                   @unique
-  brandId            String?                  @map("brand_id") @db.Uuid
-  categoryId         String?                  @map("category_id") @db.Uuid
+  brandId            String?                  @map("brand_id")
+  categoryId         String?                  @map("category_id")
   description        String?
   attributes         Json?
   unit               String?
@@ -75,7 +75,7 @@ model Product {
   isActive           Boolean                  @default(true) @map("is_active")
   createdAt          DateTime                 @default(now()) @map("created_at")
   updatedAt          DateTime                 @default(now()) @map("updated_at")
-  searchVector       Unsupported("tsvector")? @map("search_vector")
+  // searchVector removed for SQLite compatibility
   AnalyticsEvent     AnalyticsEvent[]
   ExternalProductMap ExternalProductMap[]
   brand              Brand?                   @relation(fields: [brandId], references: [id])
@@ -88,8 +88,8 @@ model Product {
 }
 
 model ProductImage {
-  id        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  productId String  @map("product_id") @db.Uuid
+  id        String  @id @default(cuid())
+  productId String  @map("product_id")
   url       String
   alt       String?
   position  Int     @default(0)
@@ -104,9 +104,9 @@ model ProductImage {
 ///  * Órdenes / Cotizaciones
 ///  * =========================
 model Order {
-  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id             String           @id @default(cuid())
   code           String?          @unique
-  clientUserId   String?          @map("client_user_id") @db.Uuid
+  clientUserId   String?          @map("client_user_id")
   status         OrderStatus      @default(DRAFT)
   subtotal       Decimal          @default(0)
   taxTotal       Decimal?         @map("tax_total")
@@ -119,7 +119,7 @@ model Order {
   quoteMessage   String?          @map("quote_message")
   quoteName      String?          @map("quote_name")
   quotePhone     String?          @map("quote_phone")
-  sellerUserId   String?          @map("seller_user_id") @db.Uuid
+  sellerUserId   String?          @map("seller_user_id")
   tax            Decimal          @default(0)
   total          Decimal          @default(0)
   type           OrderType        @default(ORDER)
@@ -134,9 +134,9 @@ model Order {
 }
 
 model OrderItem {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  orderId   String   @map("order_id") @db.Uuid
-  productId String?  @map("product_id") @db.Uuid
+  id        String   @id @default(cuid())
+  orderId   String   @map("order_id")
+  productId String?  @map("product_id")
   sku       String?
   name      String
   quantity  Decimal
@@ -156,7 +156,7 @@ model OrderItem {
 ///  * SEO - Landing de búsquedas
 ///  * =========================
 model SearchLanding {
-  id              String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id              String             @id @default(cuid())
   slug            String             @unique
   query           String
   title           String
@@ -170,10 +170,10 @@ model SearchLanding {
 }
 
 model SearchLandingHit {
-  id        String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  landingId String        @map("landing_id") @db.Uuid
+  id        String        @id @default(cuid())
+  landingId String        @map("landing_id")
   sessionId String?       @map("session_id")
-  userId    String?       @map("user_id") @db.Uuid
+  userId    String?       @map("user_id")
   referrer  String?
   createdAt DateTime      @default(now()) @map("created_at")
   landing   SearchLanding @relation(fields: [landingId], references: [id])
@@ -188,8 +188,8 @@ model SearchLandingHit {
 ///  * Logs de búsqueda / Analítica
 ///  * =========================
 model SearchQueryLog {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId       String?  @map("user_id") @db.Uuid
+  id           String   @id @default(cuid())
+  userId       String?  @map("user_id")
   query        String
   resultsCount Int?     @map("results_count")
   createdAt    DateTime @default(now()) @map("created_at")
@@ -200,13 +200,13 @@ model SearchQueryLog {
 }
 
 model AnalyticsEvent {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id        String   @id @default(cuid())
   eventName String   @map("event_name")
-  userId    String?  @map("user_id") @db.Uuid
+  userId    String?  @map("user_id")
   sessionId String?  @map("session_id")
   url       String?
-  productId String?  @map("product_id") @db.Uuid
-  orderId   String?  @map("order_id") @db.Uuid
+  productId String?  @map("product_id")
+  orderId   String?  @map("order_id")
   metadata  Json?
   createdAt DateTime @default(now()) @map("created_at")
   order     Order?   @relation(fields: [orderId], references: [id])
@@ -223,12 +223,12 @@ model AnalyticsEvent {
 ///  * Importaciones / Mapeos externos
 ///  * =========================
 model CatalogImport {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id         String    @id @default(cuid())
   source     String
   fileName   String?   @map("file_name")
   status     String    @default("PENDING")
   summary    Json?
-  createdBy  String?   @map("created_by") @db.Uuid
+  createdBy  String?   @map("created_by")
   createdAt  DateTime  @default(now()) @map("created_at")
   finishedAt DateTime? @map("finished_at")
 
@@ -237,7 +237,7 @@ model CatalogImport {
 
 model ExternalProductMap {
   externalId String  @map("external_id")
-  productId  String  @map("product_id") @db.Uuid
+  productId  String  @map("product_id")
   source     String
   product    Product @relation(fields: [productId], references: [id])
 

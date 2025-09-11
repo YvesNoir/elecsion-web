@@ -8,6 +8,7 @@ import Footer from "@/components/Footer";
 import { Montserrat } from "next/font/google";
 import { CartProvider } from "@/store/cart";   // named import
 import CartDrawer from "@/components/cart/CartDrawer";
+import SessionProvider from "@/components/SessionProvider";
 
 const montserrat = Montserrat({
     subsets: ["latin"],
@@ -27,23 +28,25 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <body
             className={`${montserrat.className} ${montserrat.variable} font-sans min-h-screen flex flex-col bg-white text-[#1C1C1C] antialiased`}
         >
-        <CartProvider>
-            <Header />
+        <SessionProvider>
+            <CartProvider>
+                <Header />
 
-            {/* <- el drawer debe estar montado para que el botón lo pueda abrir */}
-            <CartDrawer />
+                {/* <- el drawer debe estar montado para que el botón lo pueda abrir */}
+                <CartDrawer />
 
-            <main className="flex-1 bg-white">
-                <div
-                    className="mx-auto w-full px-6 py-8"
-                    style={{ maxWidth: "var(--page-container-max, 1500px)" }}
-                >
-                    {children}
-                </div>
-            </main>
+                <main className="flex-1 bg-white">
+                    <div
+                        className="mx-auto w-full px-6 py-8"
+                        style={{ maxWidth: "var(--page-container-max, 1500px)" }}
+                    >
+                        {children}
+                    </div>
+                </main>
 
-            <Footer />
-        </CartProvider>
+                <Footer />
+            </CartProvider>
+        </SessionProvider>
         </body>
         </html>
     );

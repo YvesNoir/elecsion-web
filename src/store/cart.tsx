@@ -4,6 +4,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 export type CartLine = {
+    id: string;
     sku: string;
     name: string;
     price: number;
@@ -15,8 +16,8 @@ export type CartLine = {
 type CartState = {
     lines: CartLine[];
     addItem: (line: Omit<CartLine, "qty">, qty: number) => void;
-    removeItem: (sku: string) => void;
-    setQty: (sku: string, qty: number) => void;
+    removeItem: (id: string) => void;
+    setQty: (id: string, qty: number) => void;
     clear: () => void;
     subtotal: number;
 };
@@ -54,7 +55,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     const addItem = (line: Omit<CartLine, "qty">, qty: number) => {
         setLines(prev => {
-            const idx = prev.findIndex(l => l.sku === line.sku);
+            const idx = prev.findIndex(l => l.id === line.id);
             if (idx >= 0) {
                 const clone = [...prev];
                 clone[idx] = { ...clone[idx], qty: clone[idx].qty + qty };
@@ -64,12 +65,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         });
     };
 
-    const removeItem = (sku: string) =>
-        setLines(prev => prev.filter(l => l.sku !== sku));
+    const removeItem = (id: string) =>
+        setLines(prev => prev.filter(l => l.id !== id));
 
-    const setQty = (sku: string, qty: number) =>
+    const setQty = (id: string, qty: number) =>
         setLines(prev =>
-            prev.map(l => (l.sku === sku ? { ...l, qty: Math.max(0, qty) } : l))
+            prev.map(l => (l.id === id ? { ...l, qty: Math.max(0, qty) } : l))
         );
 
     const subtotal = useMemo(
