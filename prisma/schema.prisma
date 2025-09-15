@@ -17,6 +17,11 @@ model User {
   email            String             @unique
   passwordHash     String?            @map("password_hash")
   phone            String?
+  company          String?
+  address          String?
+  city             String?
+  state            String?
+  zip              String?
   role             UserRole           @default(CLIENT)
   isActive         Boolean?           @map("is_active")
   createdAt        DateTime           @default(now()) @map("created_at")

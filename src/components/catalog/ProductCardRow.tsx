@@ -53,13 +53,13 @@ export default function ProductCardRow({
     const stockNumber = Number(stockQty ?? 0);
     const hayStock = Number.isFinite(stockNumber) && stockNumber > 0;
 
-    const ivaPct = Number(taxRate ?? 0) * 100;
+    const ivaPct = Number(taxRate ?? 0);
     const total = useMemo(() => Number(priceBase ?? 0) * qty, [priceBase, qty]);
 
     const normalizedSku = (sku ?? "").trim();
     const imgSrc = normalizedSku
-        ? `/product-images/${normalizedSku}.jpg`
-        : "/product-images/placeholder.jpg";
+        ? `/product-images/${normalizedSku}.png`
+        : "/product-images/placeholder.png";
 
     const dec = () => setQty((q) => Math.max(0, q - 1));
     const inc = () => setQty((q) => Math.min(9999, q + 1));
@@ -68,7 +68,7 @@ export default function ProductCardRow({
         if (!normalizedSku || qty < 1) return;
         if (typeof addItem === "function") {
             addItem(
-                { sku: normalizedSku, name, price: Number(priceBase), currency, unit: unit ?? undefined },
+                { id: normalizedSku, sku: normalizedSku, name, price: Number(priceBase), currency, unit: unit ?? undefined },
                 qty
             );
             if (typeof cart?.open === "function") cart.open(true);
@@ -96,7 +96,7 @@ export default function ProductCardRow({
                                 onError={(e) => {
                                     const el = e.currentTarget as HTMLImageElement;
                                     el.onerror = null;
-                                    el.src = "/product-images/placeholder.jpg";
+                                    el.src = "/product-images/placeholder.png";
                                 }}
                             />
                         </div>

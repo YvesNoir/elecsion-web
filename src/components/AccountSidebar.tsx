@@ -30,6 +30,7 @@ const sellerMenuItems: SidebarItem[] = [
 ];
 
 const adminMenuItems: SidebarItem[] = [
+    { href: "/mi-cuenta/productos", label: "Productos", roles: ["ADMIN"] },
     { href: "/usuarios", label: "Usuarios", roles: ["ADMIN"] },
     { href: "/pedidos-pendientes", label: "Pedidos Pendientes", roles: ["ADMIN"] },
     { href: "/pedidos-confirmados", label: "Pedidos Confirmados", roles: ["ADMIN"] },

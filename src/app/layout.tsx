@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
     return (
-        <html lang="es">
+        <html lang="es" suppressHydrationWarning>
         <body
             className={`${montserrat.className} ${montserrat.variable} font-sans min-h-screen flex flex-col bg-white text-[#1C1C1C] antialiased`}
         >

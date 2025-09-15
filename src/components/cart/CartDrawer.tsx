@@ -10,7 +10,7 @@ function money(n: number, currency = "ARS") {
         .format(Number(n || 0));
 }
 
-export default function CartDrawer({ top = 64 }: { top?: number }) {
+export default function CartDrawer() {
     const cart = useCart() as any;
 
     const storeHasOpenState =
@@ -78,13 +78,23 @@ export default function CartDrawer({ top = 64 }: { top?: number }) {
     const currency = (lines[0]?.currency as string | undefined) ?? "ARS";
 
     return (
-        <aside
-            className={`fixed right-0 z-40 w-[360px] sm:w-[420px] bg-white border-l shadow-xl transition-transform duration-300 ${
-                isOpen ? "translate-x-0" : "translate-x-full"
-            } text-[#1C1C1C]`}
-            style={{ top, bottom: 0 }}
-            aria-hidden={!isOpen}
-        >
+        <>
+            {/* Backdrop */}
+            {isOpen && (
+                <div 
+                    className="fixed inset-0 z-30 bg-black/50 transition-opacity duration-300"
+                    onClick={close}
+                    aria-hidden="true"
+                />
+            )}
+            
+            {/* Drawer */}
+            <aside
+                className={`fixed top-0 right-0 bottom-0 z-40 w-[360px] sm:w-[420px] bg-white border-l shadow-xl transition-transform duration-300 ${
+                    isOpen ? "translate-x-0" : "translate-x-full"
+                } text-[#1C1C1C]`}
+                aria-hidden={!isOpen}
+            >
             {/* Header */}
             <div className="flex items-center justify-between border-b px-4 py-3">
                 <h2 className="text-base font-semibold">Tu carrito</h2>
@@ -108,19 +118,19 @@ export default function CartDrawer({ top = 64 }: { top?: number }) {
                             const qty = Number(it?.qty ?? it?.quantity ?? 0);
                             const price = Number(it?.price ?? 0);
                             const lineTotal = price * qty;
-                            const img = `/product-images/${sku}.jpg`;
+                            const img = `/product-images/${sku}.png`;
 
                             return (
-                                <li key={sku} className="flex gap-3 rounded-md border p-3">
-                                    <div className="h-14 w-14 flex-none overflow-hidden rounded bg-gray-50 ring-1 ring-gray-200">
+                                <li key={sku} className="flex gap-3 rounded-md border border-[#384a93]/20 p-3">
+                                    <div className="self-stretch w-14 flex-none overflow-hidden rounded bg-gray-50 ring-1 ring-[#384a93]/30">
                                         <img
                                             src={img}
                                             alt={sku}
-                                            className="h-full w-full object-cover"
+                                            className="h-full w-full object-cover object-center"
                                             onError={(e) => {
                                                 const el = e.currentTarget as HTMLImageElement;
                                                 el.onerror = null;
-                                                el.src = "/product-images/placeholder.jpg";
+                                                el.src = "/product-images/placeholder.png";
                                             }}
                                         />
                                     </div>
@@ -132,9 +142,9 @@ export default function CartDrawer({ top = 64 }: { top?: number }) {
                                         </div>
 
                                         <div className="mt-2 flex items-center justify-between">
-                                            <div className="inline-flex items-center rounded border overflow-hidden">
+                                            <div className="inline-flex items-center rounded border border-[#384a93]/30 overflow-hidden">
                                                 <button
-                                                    className="h-7 w-7 text-sm hover:bg-gray-50"
+                                                    className="h-7 w-7 text-sm hover:bg-[#384a93]/10 text-[#384a93]"
                                                     onClick={() => setQty(sku, qty - 1)}
                                                     aria-label="Restar"
                                                 >
@@ -144,7 +154,7 @@ export default function CartDrawer({ top = 64 }: { top?: number }) {
                                                     {qty}
                                                 </div>
                                                 <button
-                                                    className="h-7 w-7 text-sm hover:bg-gray-50"
+                                                    className="h-7 w-7 text-sm hover:bg-[#384a93]/10 text-[#384a93]"
                                                     onClick={() => setQty(sku, qty + 1)}
                                                     aria-label="Sumar"
                                                 >
@@ -183,12 +193,13 @@ export default function CartDrawer({ top = 64 }: { top?: number }) {
 
                 <Link
                     href="/carrito"
-                    className="mt-3 inline-flex w-full items-center justify-center rounded-md bg-[#1C1C1C] px-3 py-2 text-sm font-medium text-white hover:bg-black/90"
+                    className="mt-3 inline-flex w-full items-center justify-center rounded-md bg-[#384a93] px-3 py-2 text-sm font-medium text-white hover:bg-[#384a93]/90"
                     onClick={close}
                 >
                     Revisar y cotizar
                 </Link>
             </div>
-        </aside>
+            </aside>
+        </>
     );
 }
