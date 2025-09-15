@@ -310,17 +310,6 @@ export default function CartPage() {
                         </button>
                     </div>
 
-                    {/* Nota informativa */}
-                    <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                        <div className="flex items-start gap-2">
-                            <div className="w-4 h-4 bg-orange-400 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
-                                <span className="text-white text-xs">📧</span>
-                            </div>
-                            <div className="text-sm text-orange-700">
-                                Envío gratis según mínimo de compra y tu localidad de entrega
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </>

@@ -93,9 +93,22 @@ export async function POST(request: NextRequest) {
         const taxTotal = subtotal * taxRate;
         const grandTotal = subtotal + taxTotal;
 
-        // Generar código único para la cotización
-        const now = new Date();
-        const code = `COT-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+        // Generar código secuencial para la cotización
+        const lastOrder = await prisma.order.findFirst({
+            where: { type: "QUOTE" },
+            orderBy: { createdAt: "desc" },
+            select: { code: true }
+        });
+
+        let nextNumber = 1;
+        if (lastOrder?.code && lastOrder.code.startsWith("COT-")) {
+            const lastNumber = parseInt(lastOrder.code.replace("COT-", ""));
+            if (!isNaN(lastNumber)) {
+                nextNumber = lastNumber + 1;
+            }
+        }
+
+        const code = `COT-${nextNumber}`;
 
         // Crear la orden como cotización
         const order = await prisma.order.create({

@@ -86,18 +86,19 @@ export default async function CatalogoPage({ searchParams }: Props) {
 
                     {/* Contenido principal */}
                     <main className="col-span-12 md:col-span-9">
-                        <div className="rounded-lg border border-[#B5B5B5]/40 bg-white p-4 sm:p-5">
-                            <h1 className="text-xl sm:text-2xl font-semibold text-[#1C1C1C]">Catálogo</h1>
-
+                        <div className="bg-white">
                             {!selectedBrand ? (
-                                <p className="mt-2 text-sm text-[#646464]">
-                                    Elegí una marca a la izquierda para ver sus productos.
-                                </p>
+                                <>
+                                    <h1 className="text-xl sm:text-2xl font-semibold text-[#1C1C1C]">Catálogo</h1>
+                                    <p className="mt-2 text-sm text-[#646464]">
+                                        Elegí una marca a la izquierda para ver sus productos.
+                                    </p>
+                                </>
                             ) : (
                                 <>
+                                    <h1 className="text-xl sm:text-2xl font-semibold text-[#1C1C1C]">{selectedBrand.name}</h1>
                                     <p className="mt-2 text-sm text-[#646464]">
-                                        Mostrando productos de{" "}
-                                        <span className="font-medium text-[#1C1C1C]">{selectedBrand.name}</span>
+                                        {products.length} {products.length === 1 ? 'producto' : 'productos'}
                                     </p>
 
                                     {products.length === 0 ? (

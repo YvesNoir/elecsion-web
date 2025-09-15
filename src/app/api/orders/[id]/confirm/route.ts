@@ -47,11 +47,12 @@ export async function PATCH(
             }, { status: 400 });
         }
 
-        // Actualizar el estado del pedido a APPROVED
+        // Actualizar el estado y tipo del pedido - QUOTE se convierte en ORDER cuando se aprueba
         const updatedOrder = await prisma.order.update({
             where: { id: orderId },
             data: {
                 status: "APPROVED",
+                type: "ORDER", // Cambiar de QUOTE a ORDER
                 updatedAt: new Date()
             },
             include: {
