@@ -14,13 +14,8 @@ export async function POST(request: NextRequest) {
     try {
         const session = await getSession();
         
-        // Verificar que el usuario esté logueado
-        if (!session?.user) {
-            return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-        }
-
         const body = await request.json();
-        const { items, quoteMessage, quoteName, quotePhone, quoteEmail } = body;
+        const { items, quoteMessage, quoteName, quotePhone, quoteEmail, quoteCompany, quoteCuit } = body;
 
 
         // Validaciones básicas
@@ -28,22 +23,38 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "El carrito está vacío" }, { status: 400 });
         }
 
-        // Obtener datos del usuario cliente
-        const clientUser = await prisma.user.findUnique({
-            where: { id: session.user.id },
-            include: {
-                assignedSeller: true
+        // Validaciones para usuarios no logueados
+        if (!session?.user) {
+            if (!quoteName || !quoteEmail) {
+                return NextResponse.json({ error: "Nombre y email son obligatorios" }, { status: 400 });
             }
-        });
-
-        if (!clientUser) {
-            return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+            // Validar formato de email
+            const emailRegex = /\S+@\S+\.\S+/;
+            if (!emailRegex.test(quoteEmail)) {
+                return NextResponse.json({ error: "Email no válido" }, { status: 400 });
+            }
         }
 
-        // Determinar vendedor asignado
+        // Obtener datos del usuario cliente si está logueado
+        let clientUser = null;
         let sellerId = null;
-        if (clientUser.role === "CLIENT" && clientUser.assignedSeller) {
-            sellerId = clientUser.assignedSeller.id;
+
+        if (session?.user) {
+            clientUser = await prisma.user.findUnique({
+                where: { id: session.user.id },
+                include: {
+                    assignedSeller: true
+                }
+            });
+
+            if (!clientUser) {
+                return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+            }
+
+            // Determinar vendedor asignado
+            if (clientUser.role === "CLIENT" && clientUser.assignedSeller) {
+                sellerId = clientUser.assignedSeller.id;
+            }
         }
 
         // Calcular totales
@@ -93,22 +104,34 @@ export async function POST(request: NextRequest) {
         const taxTotal = subtotal * taxRate;
         const grandTotal = subtotal + taxTotal;
 
-        // Generar código secuencial para la cotización
-        const lastOrder = await prisma.order.findFirst({
-            where: { type: "QUOTE" },
-            orderBy: { createdAt: "desc" },
-            select: { code: true }
-        });
-
-        let nextNumber = 1;
-        if (lastOrder?.code && lastOrder.code.startsWith("COT-")) {
-            const lastNumber = parseInt(lastOrder.code.replace("COT-", ""));
-            if (!isNaN(lastNumber)) {
-                nextNumber = lastNumber + 1;
+        // Generar código único para la cotización
+        let code: string;
+        let attempts = 0;
+        const maxAttempts = 10;
+        
+        do {
+            // Generar código basado en timestamp y número aleatorio para evitar duplicados
+            const timestamp = Date.now().toString().slice(-6);
+            const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+            code = `COT-${timestamp}${random}`;
+            
+            // Verificar si el código ya existe
+            const existingOrder = await prisma.order.findUnique({
+                where: { code },
+                select: { id: true }
+            });
+            
+            if (!existingOrder) {
+                break; // Código único encontrado
             }
+            
+            attempts++;
+        } while (attempts < maxAttempts);
+        
+        if (attempts >= maxAttempts) {
+            // Fallback: usar UUID parcial si no se puede generar código único
+            code = `COT-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
         }
-
-        const code = `COT-${nextNumber}`;
 
         // Crear la orden como cotización
         const order = await prisma.order.create({
@@ -116,7 +139,7 @@ export async function POST(request: NextRequest) {
                 code: code,
                 type: "QUOTE",
                 status: "SUBMITTED",
-                clientUserId: clientUser.id,
+                clientUserId: clientUser?.id || null,
                 sellerUserId: sellerId,
                 subtotal: subtotal,
                 taxTotal: taxTotal,
@@ -125,9 +148,11 @@ export async function POST(request: NextRequest) {
                 total: grandTotal,
                 currency: "ARS",
                 submittedAt: new Date(),
-                quoteEmail: quoteEmail || clientUser.email,
-                quoteName: quoteName || clientUser.name,
-                quotePhone: quotePhone || clientUser.phone,
+                quoteEmail: quoteEmail || clientUser?.email || "",
+                quoteName: quoteName || clientUser?.name || "",
+                quotePhone: quotePhone || clientUser?.phone || "",
+                quoteCompany: quoteCompany || "",
+                quoteCuit: quoteCuit || "",
                 quoteMessage: quoteMessage || "",
                 items: {
                     create: orderItems
@@ -167,9 +192,11 @@ export async function POST(request: NextRequest) {
                     email: order.sellerUser.email
                 } : null
             },
-            message: sellerId 
+            message: clientUser && sellerId 
                 ? "Cotización enviada exitosamente a tu vendedor asignado"
-                : "Cotización creada exitosamente. Un vendedor la revisará pronto"
+                : clientUser 
+                    ? "Cotización creada exitosamente. Un vendedor la revisará pronto"
+                    : "Cotización recibida exitosamente. Te contactaremos pronto con los precios"
         }, { status: 201 });
 
     } catch (error) {

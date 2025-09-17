@@ -1,17 +1,38 @@
 // src/components/cart/CartToggleButton.tsx
 "use client";
 
-import { useCart } from "@/store/cart";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export default function CartToggleButton() {
-    const cart = useCart() as any;
+    const [lines, setLines] = useState<any[]>([]);
+    
+    // Use localStorage directly to avoid cart context dependency 
+    useEffect(() => {
+        const updateFromLocalStorage = () => {
+            try {
+                const raw = localStorage.getItem("cart:v1");
+                const cartLines = raw ? JSON.parse(raw) : [];
+                setLines(Array.isArray(cartLines) ? cartLines : []);
+            } catch {
+                setLines([]);
+            }
+        };
 
-    const lines: any[] = Array.isArray(cart?.lines)
-        ? cart.lines
-        : Array.isArray(cart?.items)
-            ? cart.items
-            : [];
+        // Initial load
+        updateFromLocalStorage();
+
+        // Listen for storage changes
+        window.addEventListener("storage", updateFromLocalStorage);
+        
+        // Listen for custom cart events
+        const handleCartUpdate = () => updateFromLocalStorage();
+        window.addEventListener("cart:updated", handleCartUpdate);
+
+        return () => {
+            window.removeEventListener("storage", updateFromLocalStorage);
+            window.removeEventListener("cart:updated", handleCartUpdate);
+        };
+    }, []);
 
     const count = useMemo(
         () => lines.reduce((acc, l) => acc + Number(l?.qty ?? l?.quantity ?? 0), 0),
@@ -19,11 +40,7 @@ export default function CartToggleButton() {
     );
 
     function handleClick() {
-        if (typeof cart?.setOpen === "function") cart.setOpen(true);
-        else if (typeof cart?.open === "function") cart.open(true);
-        else if (typeof cart?.openDrawer === "function") cart.openDrawer();
-        else if (typeof cart?.toggle === "function") cart.toggle();
-        else window.dispatchEvent(new CustomEvent("cart:open"));
+        window.dispatchEvent(new CustomEvent("cart:open"));
     }
 
     return (

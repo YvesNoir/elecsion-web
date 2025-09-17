@@ -10,7 +10,11 @@ function money(n: number, currency = "ARS") {
         .format(Number(n || 0));
 }
 
-export default function CartDrawer() {
+type CartDrawerProps = {
+    isLoggedIn: boolean;
+};
+
+export default function CartDrawer({ isLoggedIn }: CartDrawerProps) {
     const cart = useCart() as any;
 
     const storeHasOpenState =
@@ -97,7 +101,9 @@ export default function CartDrawer() {
             >
             {/* Header */}
             <div className="flex items-center justify-between border-b px-4 py-3">
-                <h2 className="text-base font-semibold">Tu carrito</h2>
+                <h2 className="text-base font-semibold">
+                    {isLoggedIn ? 'Tu carrito' : 'Tu cotización'}
+                </h2>
                 <button
                     onClick={close}
                     className="rounded-md p-1.5 hover:bg-gray-100"
@@ -110,7 +116,9 @@ export default function CartDrawer() {
             {/* Body */}
             <div className="h-full overflow-y-auto px-4 pb-40 pt-3">
                 {lines.length === 0 ? (
-                    <p className="text-sm">Tu carrito está vacío.</p>
+                    <p className="text-sm">
+                        {isLoggedIn ? 'Tu carrito está vacío.' : 'Tu cotización está vacía.'}
+                    </p>
                 ) : (
                     <ul className="space-y-3">
                         {lines.map((it: any) => {
@@ -162,7 +170,11 @@ export default function CartDrawer() {
                                                 </button>
                                             </div>
                                             <div className="text-sm font-medium">
-                                                {money(lineTotal, it?.currency ?? currency)}
+                                                {isLoggedIn ? (
+                                                    money(lineTotal, it?.currency ?? currency)
+                                                ) : (
+                                                    <span className="text-[#384A93]">A consultar</span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -184,12 +196,18 @@ export default function CartDrawer() {
 
             {/* Footer */}
             <div className="absolute inset-x-0 bottom-0 border-t bg-white px-4 py-3">
-                <div className="flex items-center justify-between text-sm">
-                    <span className="text-[#646464]">Subtotal (sin IVA)</span>
-                    <span className="font-semibold text-[#1C1C1C]">
-            {money(subtotal, currency)}
-          </span>
-                </div>
+                {isLoggedIn ? (
+                    <div className="flex items-center justify-between text-sm">
+                        <span className="text-[#646464]">Subtotal (sin IVA)</span>
+                        <span className="font-semibold text-[#1C1C1C]">
+                            {money(subtotal, currency)}
+                        </span>
+                    </div>
+                ) : (
+                    <div className="text-center text-sm text-[#646464]">
+                        Precios a consultar tras revisión
+                    </div>
+                )}
 
                 <Link
                     href="/carrito"

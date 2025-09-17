@@ -14,7 +14,7 @@ export async function PATCH(
             return NextResponse.json({ error: "No autorizado" }, { status: 401 });
         }
 
-        const orderId = params.id;
+        const orderId = (await params).id;
 
         // Buscar el pedido
         const order = await prisma.order.findUnique({

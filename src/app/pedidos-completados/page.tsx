@@ -79,6 +79,32 @@ function getTypeLabel(type: string) {
     return type === 'QUOTE' ? 'Cotización' : 'Pedido';
 }
 
+function formatAddress(user: { address?: string | null; city?: string | null; state?: string | null; zip?: string | null }) {
+    const parts = [];
+    
+    // Agregar dirección si existe
+    if (user.address) {
+        parts.push(user.address);
+    }
+    
+    // Agregar ciudad, provincia y código postal en una línea
+    const locationParts = [];
+    if (user.city) locationParts.push(user.city);
+    if (user.state) locationParts.push(user.state);
+    if (user.zip) locationParts.push(user.zip);
+    
+    if (locationParts.length > 0) {
+        parts.push(locationParts.join(", "));
+    }
+    
+    // Si no hay información de dirección, mostrar mensaje por defecto
+    if (parts.length === 0) {
+        return "Dirección no especificada";
+    }
+    
+    return parts.join(" - ");
+}
+
 export default function CompletedOrdersPage() {
     const { data: session, status } = useSession();
     const router = useRouter();

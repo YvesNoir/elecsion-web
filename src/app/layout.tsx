@@ -7,7 +7,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Montserrat } from "next/font/google";
 import { CartProvider } from "@/store/cart";   // named import
-import CartDrawer from "@/components/cart/CartDrawer";
+import CartDrawerWrapper from "@/components/cart/CartDrawerWrapper";
 import SessionProvider from "@/components/SessionProvider";
 
 const montserrat = Montserrat({
@@ -33,7 +33,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 <Header />
 
                 {/* <- el drawer debe estar montado para que el botón lo pueda abrir */}
-                <CartDrawer />
+                <CartDrawerWrapper />
 
                 <main className="flex-1 bg-white">
                     <div
