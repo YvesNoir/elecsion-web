@@ -60,14 +60,69 @@ export default function QuotesClient({ quotes }: QuotesClientProps) {
 
     return (
         <div className="space-y-6">
-            {/* Tabla de cotizaciones */}
+            {/* Detalles de la cotización seleccionada - Ahora arriba */}
+            {selectedQuote && (
+                <div className="border border-[#B5B5B5]/40 rounded-lg">
+                    <div className="px-4 py-3 bg-[#F5F5F7] border-b border-[#B5B5B5]/40">
+                        <h3 className="text-sm font-medium text-[#1C1C1C]">
+                            Detalle de Cotización #{selectedQuote.id}
+                        </h3>
+                    </div>
+                    <div className="p-4">
+                        <div className="space-y-3">
+                            {selectedQuote.items.map((item, index) => (
+                                <div key={index} className="flex items-center justify-between p-3 bg-[#F5F5F7] rounded">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 bg-white border border-[#B5B5B5]/40 rounded flex-shrink-0 overflow-hidden">
+                                            <ProductImage
+                                                sku={item.sku}
+                                                alt={item.sku}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
+                                        <div>
+                                            <div className="font-medium text-sm text-[#1C1C1C]">{item.sku}</div>
+                                            <div className="text-xs text-[#646464] mt-1">{item.name}</div>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-sm text-[#646464]">Cantidad: {item.qty}</div>
+                                        <div className="text-sm font-medium text-[#1C1C1C]">
+                                            {money(item.price * item.qty)}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        
+                        <div className="mt-4 pt-4 border-t border-[#B5B5B5]/40 flex justify-between items-center">
+                            <div className="text-sm text-[#646464]">
+                                ⚠️ No te olvides de actualizar el carrito luego de haber hecho cambios
+                            </div>
+                            <div className="text-right space-y-1">
+                                <div className="text-sm text-[#646464]">
+                                    Subtotal: {money(selectedQuote.total / 1.21)}
+                                </div>
+                                <div className="text-sm text-[#646464]">
+                                    IVA (21%): {money(selectedQuote.total - (selectedQuote.total / 1.21))}
+                                </div>
+                                <div className="text-lg font-semibold text-[#1C1C1C] border-t border-[#B5B5B5]/40 pt-1">
+                                    Total: {money(selectedQuote.total)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Tabla de cotizaciones - Ahora abajo */}
             <div className="overflow-x-auto">
                 <table className="w-full border border-[#B5B5B5]/40 rounded-lg overflow-hidden">
                     <thead className="bg-[#F5F5F7]">
                         <tr className="text-left">
                             <th className="px-4 py-3 text-sm font-medium text-[#1C1C1C]">Orden #</th>
                             <th className="px-4 py-3 text-sm font-medium text-[#1C1C1C]">Fecha</th>
-                            <th className="px-4 py-3 text-sm font-medium text-[#1C1C1C]">Envío</th>
+                            <th className="px-4 py-3 text-sm font-medium text-[#1C1C1C]">Dirección de Envío</th>
                             <th className="px-4 py-3 text-sm font-medium text-[#1C1C1C]">Total de Orden</th>
                             <th className="px-4 py-3 text-sm font-medium text-[#1C1C1C]">Estado</th>
                             <th className="px-4 py-3 text-sm font-medium text-[#1C1C1C]">Acción</th>
@@ -132,61 +187,6 @@ export default function QuotesClient({ quotes }: QuotesClientProps) {
                     </tbody>
                 </table>
             </div>
-
-            {/* Detalles de la cotización seleccionada */}
-            {selectedQuote && (
-                <div className="border border-[#B5B5B5]/40 rounded-lg">
-                    <div className="px-4 py-3 bg-[#F5F5F7] border-b border-[#B5B5B5]/40">
-                        <h3 className="text-sm font-medium text-[#1C1C1C]">
-                            Detalle de Cotización #{selectedQuote.id}
-                        </h3>
-                    </div>
-                    <div className="p-4">
-                        <div className="space-y-3">
-                            {selectedQuote.items.map((item, index) => (
-                                <div key={index} className="flex items-center justify-between p-3 bg-[#F5F5F7] rounded">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 bg-white border border-[#B5B5B5]/40 rounded flex-shrink-0 overflow-hidden">
-                                            <ProductImage
-                                                sku={item.sku}
-                                                alt={item.sku}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        </div>
-                                        <div>
-                                            <div className="font-medium text-sm text-[#1C1C1C]">{item.sku}</div>
-                                            <div className="text-xs text-[#646464] mt-1">{item.name}</div>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="text-sm text-[#646464]">Cantidad: {item.qty}</div>
-                                        <div className="text-sm font-medium text-[#1C1C1C]">
-                                            {money(item.price * item.qty)}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                        
-                        <div className="mt-4 pt-4 border-t border-[#B5B5B5]/40 flex justify-between items-center">
-                            <div className="text-sm text-[#646464]">
-                                ⚠️ No te olvides de actualizar el carrito luego de haber hecho cambios
-                            </div>
-                            <div className="text-right space-y-1">
-                                <div className="text-sm text-[#646464]">
-                                    Subtotal: {money(selectedQuote.total / 1.21)}
-                                </div>
-                                <div className="text-sm text-[#646464]">
-                                    IVA (21%): {money(selectedQuote.total - (selectedQuote.total / 1.21))}
-                                </div>
-                                <div className="text-lg font-semibold text-[#1C1C1C] border-t border-[#B5B5B5]/40 pt-1">
-                                    Total: {money(selectedQuote.total)}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

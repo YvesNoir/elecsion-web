@@ -124,6 +124,8 @@ model Order {
   quoteMessage   String?          @map("quote_message")
   quoteName      String?          @map("quote_name")
   quotePhone     String?          @map("quote_phone")
+  quoteCompany   String?          @map("quote_company")
+  quoteCuit      String?          @map("quote_cuit")
   sellerUserId   String?          @map("seller_user_id")
   tax            Decimal          @default(0)
   total          Decimal          @default(0)

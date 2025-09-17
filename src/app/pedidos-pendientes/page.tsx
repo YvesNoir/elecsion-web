@@ -50,6 +50,14 @@ function money(n: number, currency = "ARS") {
 
 function formatDate(dateString: string) {
     return new Date(dateString).toLocaleDateString('es-AR', {
+        year: '2-digit',
+        month: '2-digit',
+        day: '2-digit'
+    });
+}
+
+function formatDateTime(dateString: string) {
+    return new Date(dateString).toLocaleDateString('es-AR', {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
@@ -222,7 +230,7 @@ export default function PendingOrdersPage() {
                 
                 <div class="order-info">
                     <div><strong>Código:</strong> ${order.code}</div>
-                    <div><strong>Fecha:</strong> ${formatDate(order.submittedAt)}</div>
+                    <div><strong>Fecha:</strong> ${formatDateTime(order.submittedAt)}</div>
                     <div><strong>Cliente:</strong> ${order.clientUser?.name || order.quoteName || 'Cliente'}</div>
                     <div><strong>Email:</strong> ${order.clientUser?.email || order.quoteEmail}</div>
                     ${order.clientUser?.phone || order.quotePhone ? `<div><strong>Teléfono:</strong> ${order.clientUser?.phone || order.quotePhone}</div>` : ''}
@@ -328,52 +336,44 @@ export default function PendingOrdersPage() {
                             <table className="w-full">
                                 <thead className="bg-[#F5F5F7] border-b border-[#B5B5B5]/40">
                                     <tr className="text-left">
-                                        <th className="px-6 py-3 text-sm font-medium text-[#1C1C1C]">Código</th>
-                                        <th className="px-3 py-3 text-sm font-medium text-[#1C1C1C] text-center w-24">Tipo</th>
-                                        <th className="px-3 py-3 text-sm font-medium text-[#1C1C1C]">Cliente</th>
-                                        <th className="px-3 py-3 text-sm font-medium text-[#1C1C1C] text-center w-20">Items</th>
-                                        <th className="px-3 py-3 text-sm font-medium text-[#1C1C1C] text-center w-28">Total</th>
-                                        <th className="px-3 py-3 text-sm font-medium text-[#1C1C1C] text-center w-24">Estado</th>
-                                        <th className="px-3 py-3 text-sm font-medium text-[#1C1C1C]">Vendedor</th>
-                                        <th className="px-3 py-3 text-sm font-medium text-[#1C1C1C] text-center w-32">Fecha</th>
-                                        <th className="px-3 py-3 text-sm font-medium text-[#1C1C1C] text-center w-32">Acciones</th>
+                                        <th className="px-4 py-3 text-sm font-medium text-[#1C1C1C] w-24">Código</th>
+                                        <th className="px-4 py-3 text-sm font-medium text-[#1C1C1C] text-center w-20">Tipo</th>
+                                        <th className="px-4 py-3 text-sm font-medium text-[#1C1C1C] w-48">Cliente</th>
+                                        <th className="px-4 py-3 text-sm font-medium text-[#1C1C1C] text-center w-32">Items/Total</th>
+                                        <th className="px-4 py-3 text-sm font-medium text-[#1C1C1C] text-center w-24">Estado</th>
+                                        <th className="px-4 py-3 text-sm font-medium text-[#1C1C1C] w-36">Vendedor</th>
+                                        <th className="px-4 py-3 text-sm font-medium text-[#1C1C1C] text-center w-24">Fecha</th>
+                                        <th className="px-4 py-3 text-sm font-medium text-[#1C1C1C] text-center w-24">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[#B5B5B5]/20">
                                     {orders.length === 0 ? (
                                         <tr>
-                                            <td colSpan={9} className="px-6 py-8 text-center text-[#646464]">
+                                            <td colSpan={8} className="px-6 py-8 text-center text-[#646464]">
                                                 No hay pedidos pendientes
                                             </td>
                                         </tr>
                                     ) : (
                                         orders.map((order) => (
                                             <tr key={order.id} className="hover:bg-[#F5F5F7]/50">
-                                                <td className="px-6 py-4">
-                                                    <div>
-                                                        <div className="font-medium text-[#1C1C1C] text-sm">
-                                                            {order.code}
-                                                        </div>
-                                                        {order.quoteMessage && (
-                                                            <div className="text-xs text-[#646464] mt-1 max-w-xs truncate">
-                                                                {order.quoteMessage}
-                                                            </div>
-                                                        )}
-                                                    </div>
+                                                <td className="px-4 py-4">
+                                                    <span className="font-medium text-[#1C1C1C] text-sm">
+                                                        {order.code}
+                                                    </span>
                                                 </td>
-                                                <td className="px-3 py-4 text-center">
+                                                <td className="px-4 py-4 text-center">
                                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                                         order.type === 'QUOTE' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
                                                     }`}>
                                                         {getTypeLabel(order.type)}
                                                     </span>
                                                 </td>
-                                                <td className="px-3 py-4">
+                                                <td className="px-4 py-4">
                                                     <div>
                                                         <div className="font-medium text-[#1C1C1C] text-sm">
                                                             {order.clientUser?.name || order.quoteName || "Cliente"}
                                                         </div>
-                                                        <div className="text-xs text-[#646464]">
+                                                        <div className="text-xs text-[#646464] truncate">
                                                             {order.clientUser?.email || order.quoteEmail}
                                                         </div>
                                                         {(order.clientUser?.phone || order.quotePhone) && (
@@ -383,56 +383,53 @@ export default function PendingOrdersPage() {
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="px-3 py-4 text-center">
-                                                    <span className="text-sm font-medium text-[#1C1C1C]">
-                                                        {order._count.items}
-                                                    </span>
+                                                <td className="px-4 py-4 text-center">
+                                                    <div className="text-sm">
+                                                        <div className="font-medium text-[#1C1C1C]">
+                                                            {money(order.total, order.currency)}
+                                                        </div>
+                                                        <div className="text-xs text-[#646464]">
+                                                            {order._count.items} item{order._count.items !== 1 ? 's' : ''}
+                                                        </div>
+                                                    </div>
                                                 </td>
-                                                <td className="px-3 py-4 text-center">
-                                                    <span className="text-sm font-medium text-[#1C1C1C]">
-                                                        {money(order.total, order.currency)}
-                                                    </span>
-                                                </td>
-                                                <td className="px-3 py-4 text-center">
+                                                <td className="px-4 py-4 text-center">
                                                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                                                         {getStatusLabel(order.status)}
                                                     </span>
                                                 </td>
-                                                <td className="px-3 py-4">
+                                                <td className="px-4 py-4">
                                                     {order.sellerUser ? (
                                                         <div className="text-sm">
                                                             <div className="font-medium text-[#1C1C1C]">
                                                                 {order.sellerUser.name}
                                                             </div>
-                                                            <div className="text-xs text-[#646464]">
-                                                                {order.sellerUser.email}
-                                                            </div>
                                                         </div>
                                                     ) : (
-                                                        <span className="text-sm text-[#646464]">Sin asignar</span>
+                                                        <span className="text-xs text-[#646464]">Sin asignar</span>
                                                     )}
                                                 </td>
-                                                <td className="px-3 py-4 text-center">
+                                                <td className="px-4 py-4 text-center">
                                                     <span className="text-xs text-[#646464]">
                                                         {formatDate(order.submittedAt)}
                                                     </span>
                                                 </td>
-                                                <td className="px-3 py-4 text-center">
-                                                    <div className="flex items-center justify-center gap-2">
+                                                <td className="px-4 py-4 text-center">
+                                                    <div className="flex items-center justify-center gap-1">
                                                         <button
                                                             onClick={() => handlePrintOrder(order)}
-                                                            className="px-3 py-1.5 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                                                            className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
                                                             title="Imprimir recibo"
                                                         >
-                                                            🖨️ Imprimir
+                                                            🖨️
                                                         </button>
                                                         {order.status === 'SUBMITTED' && canConfirmOrder(order) && (
                                                             <button
                                                                 onClick={() => handleConfirmOrder(order.id)}
-                                                                className="px-3 py-1.5 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
+                                                                className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
                                                                 title="Confirmar pedido"
                                                             >
-                                                                ✅ Confirmar
+                                                                ✅
                                                             </button>
                                                         )}
                                                     </div>

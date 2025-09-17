@@ -12,6 +12,11 @@ type Props = {
     currency: string;
     taxRate?: number | null;
     stockQty?: number | null;
+    brand?: {
+        name: string;
+        slug: string;
+    } | null;
+    isLoggedIn: boolean;
 };
 
 function formatMoney(value: number, currency: string) {
@@ -32,6 +37,8 @@ export default function ProductCardRow({
                                            currency,
                                            taxRate,
                                            stockQty,
+                                           brand,
+                                           isLoggedIn,
                                        }: Props) {
     // carrito tolerante a distintas implementaciones
     const cart = useCart() as any;
@@ -80,10 +87,10 @@ export default function ProductCardRow({
 
     return (
         <li className="rounded-lg border border-[#E5E5E5] bg-white px-4 py-3 sm:px-5 sm:py-4 shadow-sm hover:shadow transition">
-            {/* GRID 10 -> 40/20/10/10/20 */}
-            <div className="grid grid-cols-10 items-center gap-4">
-                {/* 40%: imagen + datos */}
-                <div className="col-span-10 md:col-span-4 overflow-hidden">
+            {/* GRID 12 -> 35/15/15/10/10/15 */}
+            <div className="grid grid-cols-12 items-center gap-4">
+                {/* 35%: imagen + datos */}
+                <div className="col-span-12 md:col-span-4 overflow-hidden">
                     <div className="flex items-center gap-3 min-w-0">
                         <div className="h-14 w-14 flex-none overflow-hidden rounded-md ring-1 ring-gray-200 bg-gray-50">
                             <img
@@ -114,7 +121,15 @@ export default function ProductCardRow({
                     </div>
                 </div>
 
-                {/* 20%: Stock */}
+                {/* 15%: Marca */}
+                <div className="col-span-5 md:col-span-2">
+                    <div className="text-[11px] uppercase tracking-wide text-[#7a7a7a]">Marca</div>
+                    <div className="mt-1 text-[#1C1C1C]">
+                        {brand?.name || "—"}
+                    </div>
+                </div>
+
+                {/* 15%: Stock */}
                 <div className="col-span-5 md:col-span-2">
                     <div className="text-[11px] uppercase tracking-wide text-[#7a7a7a]">Stock</div>
                     <div
@@ -131,7 +146,11 @@ export default function ProductCardRow({
                 {/* 10%: Precio */}
                 <div className="col-span-5 md:col-span-1">
                     <div className="text-[11px] uppercase tracking-wide text-[#7a7a7a]">Precio</div>
-                    <div className="mt-1 font-medium text-[#1C1C1C]">{formatMoney(priceBase, currency)}</div>
+                    <div className="mt-1 font-medium text-[#1C1C1C]">
+                        {isLoggedIn ? formatMoney(priceBase, currency) : (
+                            <span className="text-[#384A93] text-sm">Consultar</span>
+                        )}
+                    </div>
                 </div>
 
                 {/* 10%: IVA */}
@@ -142,13 +161,15 @@ export default function ProductCardRow({
                     </div>
                 </div>
 
-                {/* 20%: Controles */}
-                <div className="col-span-10 md:col-span-2 flex flex-col items-end">
-                    <div className="self-end text-[11px] uppercase tracking-wide text-[#7a7a7a]">Carrito</div>
-                    <div className="mt-1 inline-flex items-center rounded-md border border-[#E5E5E5] overflow-hidden">
-                        <button type="button" onClick={dec} className="h-7 w-7 text-sm text-[#1C1C1C] hover:bg-gray-50" aria-label="Restar">–</button>
-                        <div className="h-7 min-w-[2.25rem] px-1 text-center text-sm leading-7 text-[#1C1C1C]">{qty}</div>
-                        <button type="button" onClick={inc} className="h-7 w-7 text-sm text-[#1C1C1C] hover:bg-gray-50" aria-label="Sumar">+</button>
+                {/* 15%: Controles */}
+                <div className="col-span-12 md:col-span-2 flex flex-col items-end">
+                    <div className="self-end text-[11px] uppercase tracking-wide text-[#7a7a7a]">
+                        {isLoggedIn ? 'Agregar al carrito' : 'Cotizar'}
+                    </div>
+                    <div className="mt-1 inline-flex items-center rounded-full border border-[#e1e8f4] bg-[#e1e8f4] overflow-hidden">
+                        <button type="button" onClick={dec} className="h-7 w-7 text-sm text-[#384A93] hover:bg-[#d1d8e4] transition-colors" aria-label="Restar">–</button>
+                        <div className="h-7 min-w-[2.25rem] px-1 text-center text-sm leading-7 text-[#384A93] font-medium">{qty}</div>
+                        <button type="button" onClick={inc} className="h-7 w-7 text-sm text-[#384A93] hover:bg-[#d1d8e4] transition-colors" aria-label="Sumar">+</button>
                     </div>
                     {inCartQty > 0 && (
                         <div className="mt-1 text-[11px] text-[#7a7a7a]">En carrito: {inCartQty} u.</div>
@@ -160,16 +181,25 @@ export default function ProductCardRow({
             {qty >= 1 && (
                 <div className="mt-3 rounded-md border border-[#E5E5E5] bg-[#FAFAFA] px-3 py-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <div className="text-sm text-[#646464]">
-                        Valor total:{" "}
-                        <span className="font-medium text-[#1C1C1C]">{formatMoney(total, currency)}</span>{" "}
-                        <span className="text-xs">+ IVA</span>
+                        {isLoggedIn ? (
+                            <>
+                                Valor total:{" "}
+                                <span className="font-medium text-[#1C1C1C]">{formatMoney(total, currency)}</span>{" "}
+                                <span className="text-xs">+ IVA</span>
+                            </>
+                        ) : (
+                            <>
+                                Cantidad: <span className="font-medium text-[#1C1C1C]">{qty}</span>{" "}
+                                <span className="text-xs">• Precio a consultar</span>
+                            </>
+                        )}
                     </div>
                     <button
                         type="button"
                         onClick={add}
-                        className="inline-flex items-center justify-center rounded-md bg-[#1C1C1C] px-3 py-1.5 text-sm font-medium text-white hover:bg-black/90"
+                        className="inline-flex items-center justify-center rounded-md bg-[#384A93] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#2e3d7a]"
                     >
-                        Añadir al carrito
+                        {isLoggedIn ? 'Añadir al carrito' : 'Agregar para cotizar'}
                     </button>
                 </div>
             )}

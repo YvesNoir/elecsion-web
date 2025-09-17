@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { getSession } from "@/lib/session";
 import CartToggleButton from "@/components/cart/CartToggleButton";
+import SearchButton from "@/components/SearchButton";
 
 type HeaderProps = {
     className?: string;
@@ -20,7 +21,7 @@ export default async function Header({ className }: HeaderProps) {
                     <nav className="hidden md:flex items-center gap-6">
                         <Link href="/" className={navLink}>Inicio</Link>
                         <Link href="/catalogo" className={navLink}>Catálogo</Link>
-                        <Link href="/buscar" className={navLink}>Buscar</Link>
+                        <SearchButton />
                     </nav>
 
                     {/* Centro (logo) */}

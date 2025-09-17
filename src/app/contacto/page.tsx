@@ -4,17 +4,17 @@ import ContactForm from "@/components/ContactForm";
 
 export const metadata: Metadata = {
     title: "Contáctanos | Elecsion",
-    description: "Contactanos - Talcahuano 1544, Villa Madero, Buenos Aires",
+    description: "Contactanos - Av. Mitre 3514, Buenos Aires",
 };
 
 export default function ContactoPage() {
-    const address = "Talcahuano 1544, Villa Madero, Buenos Aires";
-    const phoneDisplay = "2099-6983";          // como lo querés ver
-    const phoneTel = "+541120996983";          // formato tel: (estimado)
-    const email = "ventas@elecsion.com";
+    const address = "Av. Mitre 3514, Buenos Aires";
+    const phoneDisplay = "11-5875-3371";        // como lo querés ver
+    const phoneTel = "+541158753371";          // formato tel:
+    const email = "info@elecsion.com";
 
     return (
-        <div className="max-w-6xl mx-auto px-4 py-8 text-[#1C1C1C]">
+        <div className="mx-auto w-full max-w-[1500px] px-6 py-8 text-[#1C1C1C]">
             <h1 className="text-2xl font-semibold mb-2">Contactanos</h1>
             <p className="text-gray-600 mb-6">
                 Estamos para ayudarte. Escribinos o visitanos en nuestra sucursal.
@@ -70,6 +70,23 @@ export default function ContactoPage() {
                                     </div>
                                 </div>
                             </li>
+
+                            <li className="flex items-start gap-3">
+                                {/* Horarios */}
+                                <span className="mt-0.5 inline-grid h-6 w-6 place-items-center rounded-full bg-[#384A93] text-white">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                    <polyline points="12,6 12,12 16,14" stroke="currentColor" strokeWidth="2"/>
+                  </svg>
+                </span>
+                                <div>
+                                    <div className="font-medium">Horario de atención</div>
+                                    <div className="text-gray-600">
+                                        <div>Lunes a Viernes</div>
+                                        <div>9:00 a 13:00 - 14:00 a 18:00</div>
+                                    </div>
+                                </div>
+                            </li>
                         </ul>
 
                         {/* Acciones rápidas */}
@@ -81,7 +98,7 @@ export default function ContactoPage() {
                                 Enviar email
                             </a>
                             <a
-                                href="https://wa.me/541168665846"
+                                href="https://wa.me/541158753371"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="rounded-md border px-3 py-2 text-sm hover:bg-gray-50"

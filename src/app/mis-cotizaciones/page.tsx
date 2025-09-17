@@ -15,6 +15,32 @@ function money(n: number, currency = "ARS") {
         .format(Number(n || 0));
 }
 
+function formatAddress(user: { address?: string | null; city?: string | null; state?: string | null; zip?: string | null; company?: string | null }) {
+    const parts = [];
+    
+    // Agregar dirección si existe
+    if (user.address) {
+        parts.push(user.address);
+    }
+    
+    // Agregar ciudad, provincia y código postal en una línea
+    const locationParts = [];
+    if (user.city) locationParts.push(user.city);
+    if (user.state) locationParts.push(user.state);
+    if (user.zip) locationParts.push(user.zip);
+    
+    if (locationParts.length > 0) {
+        parts.push(locationParts.join(", "));
+    }
+    
+    // Si no hay información de dirección, mostrar mensaje por defecto
+    if (parts.length === 0) {
+        return "Dirección no especificada";
+    }
+    
+    return parts.join(" - ");
+}
+
 
 export default async function QuotesPage() {
     const session = await getSession();
@@ -48,9 +74,18 @@ export default async function QuotesPage() {
         );
     }
 
-    // Buscar al usuario en la BD para obtener su ID real
+    // Buscar al usuario en la BD para obtener su ID real y datos de dirección
     const user = await prisma.user.findUnique({
-        where: { email: session.user.email! }
+        where: { email: session.user.email! },
+        select: {
+            id: true,
+            name: true,
+            address: true,
+            city: true,
+            state: true,
+            zip: true,
+            company: true
+        }
     });
 
     if (!user) {
@@ -83,7 +118,7 @@ export default async function QuotesPage() {
             month: '2-digit',
             year: '2-digit'
         }),
-        company: "NUEVA DIRECCION ELECSION S.R.L.",
+        company: formatAddress(user),
         total: Number(quote.total),
         status: quote.status,
         statusLabel: quote.status === 'SUBMITTED' ? 'Pendiente' : 

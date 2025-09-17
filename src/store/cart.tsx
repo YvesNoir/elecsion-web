@@ -51,6 +51,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     // persistir
     useEffect(() => {
         writeLS(lines);
+        // Notify other components about cart updates
+        if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("cart:updated"));
+        }
     }, [lines]);
 
     const addItem = (line: Omit<CartLine, "qty">, qty: number) => {
