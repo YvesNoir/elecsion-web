@@ -24,7 +24,13 @@ export default async function CatalogoPage({ searchParams }: Props) {
             id: true,
             name: true,
             slug: true,
-            _count: { select: { products: true } },
+            _count: { 
+                select: { 
+                    products: {
+                        where: { isActive: true, isDeleted: false }
+                    } 
+                } 
+            },
         },
     });
 
@@ -33,17 +39,17 @@ export default async function CatalogoPage({ searchParams }: Props) {
     // Obtener el total de productos para la paginación
     const totalProducts = selectedBrand
         ? await prisma.product.count({
-            where: { brandId: selectedBrand.id, isActive: true },
+            where: { brandId: selectedBrand.id, isActive: true, isDeleted: false },
         })
         : await prisma.product.count({
-            where: { isActive: true },
+            where: { isActive: true, isDeleted: false },
         });
 
     const totalPages = Math.ceil(totalProducts / productsPerPage);
 
     const rawProducts = selectedBrand
         ? await prisma.product.findMany({
-            where: { brandId: selectedBrand.id, isActive: true },
+            where: { brandId: selectedBrand.id, isActive: true, isDeleted: false },
             orderBy: [{ sku: "asc" }, { name: "asc" }],
             skip,
             take: productsPerPage,
@@ -65,7 +71,7 @@ export default async function CatalogoPage({ searchParams }: Props) {
             },
         })
         : await prisma.product.findMany({
-            where: { isActive: true },
+            where: { isActive: true, isDeleted: false },
             orderBy: [{ sku: "asc" }, { name: "asc" }],
             skip,
             take: productsPerPage,

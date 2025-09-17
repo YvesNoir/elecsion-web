@@ -21,11 +21,15 @@ export default async function ProductosPage() {
             stockQty: true,
             taxRate: true,
             isActive: true,
+            isDeleted: true,
             brand: {
                 select: {
                     name: true
                 }
             }
+        },
+        where: {
+            isDeleted: false // Solo productos no eliminados
         },
         orderBy: {
             name: 'asc'
