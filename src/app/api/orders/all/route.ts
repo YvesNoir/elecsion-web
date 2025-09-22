@@ -6,13 +6,13 @@ export async function GET() {
     try {
         const session = await getSession();
         
-        // Verificar que el usuario esté logueado y sea admin
+        // Verificar que el usuario esté logueado y tenga permisos
         if (!session?.user) {
             return NextResponse.json({ error: "No autorizado" }, { status: 401 });
         }
         
-        if (session.user.role !== "ADMIN") {
-            return NextResponse.json({ error: "Solo administradores pueden acceder a esta información" }, { status: 403 });
+        if (session.user.role !== "ADMIN" && session.user.role !== "SELLER") {
+            return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
         }
 
         // Obtener todas las órdenes/cotizaciones

@@ -18,6 +18,7 @@ export default async function ProductosPage() {
             sku: true,
             name: true,
             priceBase: true,
+            currency: true,
             stockQty: true,
             taxRate: true,
             isActive: true,

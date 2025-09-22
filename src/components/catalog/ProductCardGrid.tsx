@@ -11,7 +11,6 @@ type ProductCardGridProps = {
     priceBase: number;
     currency: string;
     taxRate: number | null;
-    stockQty: number | null;
     isLoggedIn: boolean;
 };
 
@@ -27,7 +26,6 @@ export default function ProductCardGrid({
     priceBase,
     currency,
     taxRate,
-    stockQty,
     isLoggedIn,
 }: ProductCardGridProps) {
     const [qty, setQty] = useState(0);

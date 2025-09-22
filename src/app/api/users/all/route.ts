@@ -29,6 +29,7 @@ export async function GET() {
                 phone: true,
                 role: true,
                 isActive: true,
+                deleted: true,
                 createdAt: true,
                 assignedSeller: {
                     select: {
@@ -38,7 +39,11 @@ export async function GET() {
                 },
                 _count: {
                     select: {
-                        clients: true // Cantidad de clientes asignados (si es seller)
+                        clients: {
+                            where: {
+                                role: "CLIENT" // Solo contar usuarios con rol CLIENT
+                            }
+                        }
                     }
                 }
             }

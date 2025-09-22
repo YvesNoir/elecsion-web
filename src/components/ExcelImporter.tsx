@@ -10,6 +10,7 @@ type ExcelRow = {
     price: number;
     stock: number;
     iva: number;
+    currency: string;
 };
 
 type ExcelImporterProps = {
@@ -50,6 +51,23 @@ export default function ExcelImporter({ onImport, isOpen, onClose }: ExcelImport
                 // Saltar filas vacías
                 if (!row || row.length === 0 || !row[0]) continue;
                 
+                // Detectar moneda basándose en la columna Currency/Md.
+                let currency = 'ARS'; // Por defecto pesos argentinos
+                const currencyValue = row[3]; // Columna Currency/Md. (posición 3)
+                
+                // Convertir a string y normalizar
+                const currencyStr = String(currencyValue || '').trim().toUpperCase();
+                
+                if (currencyStr === 'U$S' || currencyStr === 'USD' || currencyStr === '$USD' || currencyStr === 'DOLLAR' || currencyStr === 'DOLAR') {
+                    currency = 'USD';
+                } else if (currencyStr === '$' || currencyStr === 'ARS' || currencyStr === '$ARS' || currencyStr === 'PESO' || currencyStr === 'PESOS') {
+                    currency = 'ARS';
+                } else if (!currencyStr || currencyStr === 'UNDEFINED') {
+                    // Si no hay moneda definida, intentar detectar por el nombre del archivo o contenido
+                    // Por ahora, asumimos ARS por defecto
+                    currency = 'ARS';
+                }
+
                 mappedData.push({
                     codigo: row[0], // Código
                     descripcion: row[1] || '', // Descripción
@@ -57,6 +75,7 @@ export default function ExcelImporter({ onImport, isOpen, onClose }: ExcelImport
                     price: parseFloat(row[4]) || 0, // Price
                     stock: parseFloat(row[9]) || 0, // Stock
                     iva: parseFloat(row[6]) || 21, // IVA (por defecto 21%)
+                    currency: currency, // Moneda detectada
                 });
             }
 
@@ -171,10 +190,11 @@ export default function ExcelImporter({ onImport, isOpen, onClose }: ExcelImport
                                 <ul className="text-sm text-blue-700 space-y-1">
                                     <li>• <strong>Código</strong> → SKU del producto</li>
                                     <li>• <strong>Descripción</strong> → Nombre del producto</li>
-                                    <li>• <strong>Familia</strong> → Marca del producto</li>
+                                    <li>• <strong>Md.</strong> → Moneda ($ = ARS, U$S = USD)</li>
                                     <li>• <strong>Price</strong> → Precio base</li>
-                                    <li>• <strong>Stock</strong> → Cantidad en stock</li>
+                                    <li>• <strong>Familia</strong> → Marca del producto</li>
                                     <li>• <strong>IVA</strong> → Porcentaje de IVA (21%, 10.5%, etc.)</li>
+                                    <li>• <strong>Stock</strong> → Cantidad en stock</li>
                                 </ul>
                             </div>
                         </div>
@@ -194,6 +214,7 @@ export default function ExcelImporter({ onImport, isOpen, onClose }: ExcelImport
                                             <th className="px-4 py-3 text-left font-medium text-gray-900">Producto</th>
                                             <th className="px-4 py-3 text-left font-medium text-gray-900">Marca</th>
                                             <th className="px-4 py-3 text-right font-medium text-gray-900">Precio</th>
+                                            <th className="px-4 py-3 text-center font-medium text-gray-900">Moneda</th>
                                             <th className="px-4 py-3 text-right font-medium text-gray-900">Stock</th>
                                             <th className="px-4 py-3 text-center font-medium text-gray-900">IVA</th>
                                         </tr>
@@ -204,7 +225,18 @@ export default function ExcelImporter({ onImport, isOpen, onClose }: ExcelImport
                                                 <td className="px-4 py-3 font-mono">{row.codigo}</td>
                                                 <td className="px-4 py-3">{row.descripcion}</td>
                                                 <td className="px-4 py-3">{row.familia}</td>
-                                                <td className="px-4 py-3 text-right font-mono">${row.price.toLocaleString('es-AR', {minimumFractionDigits: 2})}</td>
+                                                <td className="px-4 py-3 text-right font-mono">
+                                                    {row.currency === 'USD' ? 'U$S' : '$'} {row.price.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                                                </td>
+                                                <td className="px-4 py-3 text-center font-mono">
+                                                    <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
+                                                        row.currency === 'USD' 
+                                                            ? 'bg-green-100 text-green-800' 
+                                                            : 'bg-blue-100 text-blue-800'
+                                                    }`}>
+                                                        {row.currency === 'USD' ? 'U$S' : '$'}
+                                                    </span>
+                                                </td>
                                                 <td className="px-4 py-3 text-right font-mono">{row.stock}</td>
                                                 <td className="px-4 py-3 text-center font-mono">{row.iva}%</td>
                                             </tr>

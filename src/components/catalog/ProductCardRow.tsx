@@ -1,7 +1,7 @@
 // src/components/catalog/ProductCardRow.tsx
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useCart } from "@/store/cart";
 
 type Props = {
@@ -11,7 +11,6 @@ type Props = {
     priceBase: number;
     currency: string;
     taxRate?: number | null;
-    stockQty?: number | null;
     brand?: {
         name: string;
         slug: string;
@@ -29,6 +28,14 @@ function formatMoney(value: number, currency: string) {
     }).format(n);
 }
 
+function formatUSD(value: number) {
+    return `U$S ${Number(value ?? 0).toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
+}
+
+function formatARS(value: number) {
+    return `$ ${Number(value ?? 0).toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
+}
+
 export default function ProductCardRow({
                                            sku,
                                            name,
@@ -36,7 +43,6 @@ export default function ProductCardRow({
                                            priceBase,
                                            currency,
                                            taxRate,
-                                           stockQty,
                                            brand,
                                            isLoggedIn,
                                        }: Props) {
@@ -56,12 +62,35 @@ export default function ProductCardRow({
     );
 
     const [qty, setQty] = useState(0);
+    const [exchangeRate, setExchangeRate] = useState<{ sell: number } | null>(null);
 
-    const stockNumber = Number(stockQty ?? 0);
-    const hayStock = Number.isFinite(stockNumber) && stockNumber > 0;
+    // Obtener cotización BNA para productos USD
+    useEffect(() => {
+        if (currency?.toUpperCase() === 'USD') {
+            fetch('/api/exchange-rate')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.sell) {
+                        setExchangeRate(data);
+                    }
+                })
+                .catch(err => console.error('Error fetching exchange rate:', err));
+        }
+    }, [currency]);
+
 
     const ivaPct = Number(taxRate ?? 0);
     const total = useMemo(() => Number(priceBase ?? 0) * qty, [priceBase, qty]);
+    
+    // Calcular precio en pesos para productos USD
+    const priceInARS = useMemo(() => {
+        if (currency?.toUpperCase() === 'USD' && exchangeRate?.sell) {
+            return Number(priceBase) * exchangeRate.sell;
+        }
+        return null;
+    }, [priceBase, currency, exchangeRate]);
+
+    const isUSD = currency?.toUpperCase() === 'USD';
 
     const normalizedSku = (sku ?? "").trim();
     const imgSrc = normalizedSku
@@ -87,9 +116,9 @@ export default function ProductCardRow({
 
     return (
         <li className="rounded-lg border border-[#E5E5E5] bg-white px-4 py-3 sm:px-5 sm:py-4 shadow-sm hover:shadow transition">
-            {/* GRID 12 -> 35/15/15/10/10/15 */}
+            {/* GRID 12 -> 4/2/2/2/2 */}
             <div className="grid grid-cols-12 items-center gap-4">
-                {/* 35%: imagen + datos */}
+                {/* 33%: imagen + datos */}
                 <div className="col-span-12 md:col-span-4 overflow-hidden">
                     <div className="flex items-center gap-3 min-w-0">
                         <div className="h-14 w-14 flex-none overflow-hidden rounded-md ring-1 ring-gray-200 bg-gray-50">
@@ -121,48 +150,54 @@ export default function ProductCardRow({
                     </div>
                 </div>
 
-                {/* 15%: Marca */}
-                <div className="col-span-5 md:col-span-2">
+                {/* 17%: Marca */}
+                <div className="col-span-4 md:col-span-2">
                     <div className="text-[11px] uppercase tracking-wide text-[#7a7a7a]">Marca</div>
                     <div className="mt-1 text-[#1C1C1C]">
                         {brand?.name || "—"}
                     </div>
                 </div>
 
-                {/* 15%: Stock */}
-                <div className="col-span-5 md:col-span-2">
-                    <div className="text-[11px] uppercase tracking-wide text-[#7a7a7a]">Stock</div>
-                    <div
-                        className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs ${
-                            hayStock ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
-                        }`}
-                        title={hayStock ? "Con stock" : "Sin stock"}
-                    >
-                        <span className={`inline-block size-2 rounded-sm ${hayStock ? "bg-green-600" : "bg-gray-400"}`} />
-                        {hayStock ? "Disponible" : "Sin stock"}
-                    </div>
-                </div>
 
-                {/* 10%: Precio */}
-                <div className="col-span-5 md:col-span-1">
+                {/* 17%: Precio */}
+                <div className="col-span-4 md:col-span-2">
                     <div className="text-[11px] uppercase tracking-wide text-[#7a7a7a]">Precio</div>
-                    <div className="mt-1 font-medium text-[#1C1C1C]">
-                        {isLoggedIn ? formatMoney(priceBase, currency) : (
+                    <div className="mt-1">
+                        {isLoggedIn ? (
+                            <div>
+                                {isUSD ? (
+                                    <div>
+                                        <div className="font-medium text-[#1C1C1C]">
+                                            {formatUSD(priceBase)}
+                                        </div>
+                                        {priceInARS && (
+                                            <div className="text-xs text-[#646464] mt-0.5">
+                                                Precio en pesos: {formatARS(priceInARS)}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="font-medium text-[#1C1C1C]">
+                                        {formatMoney(priceBase, currency)}
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
                             <span className="text-[#384A93] text-sm">Consultar</span>
                         )}
                     </div>
                 </div>
 
-                {/* 10%: IVA */}
-                <div className="col-span-5 md:col-span-1">
+                {/* 17%: IVA */}
+                <div className="col-span-4 md:col-span-2">
                     <div className="text-[11px] uppercase tracking-wide text-[#7a7a7a]">IVA</div>
                     <div className="mt-1 text-[#1C1C1C]">
                         {Number.isFinite(ivaPct) && ivaPct > 0 ? `${ivaPct.toFixed(1)}%` : "—"}
                     </div>
                 </div>
 
-                {/* 15%: Controles */}
-                <div className="col-span-12 md:col-span-2 flex flex-col items-end">
+                {/* 17%: Controles */}
+                <div className="col-span-4 md:col-span-2 flex flex-col items-end">
                     <div className="self-end text-[11px] uppercase tracking-wide text-[#7a7a7a]">
                         {isLoggedIn ? 'Agregar al carrito' : 'Cotizar'}
                     </div>
