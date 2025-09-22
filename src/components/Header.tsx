@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getSession } from "@/lib/session";
 import CartToggleButton from "@/components/cart/CartToggleButton";
 import SearchButton from "@/components/SearchButton";
+import ExchangeRateDisplay from "@/components/ExchangeRateDisplay";
 
 type HeaderProps = {
     className?: string;
@@ -33,6 +34,9 @@ export default async function Header({ className }: HeaderProps) {
 
                     {/* Derecha */}
                     <div className="flex justify-end items-center gap-6">
+                        {/* Cotización del dólar */}
+                        <ExchangeRateDisplay />
+                        
                         <Link
                             href={session?.user ? "/mi-cuenta" : "/login"}
                             className={navLink}

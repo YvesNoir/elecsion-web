@@ -10,6 +10,7 @@ type ImportRow = {
     price: number;
     stock: number;
     iva: number;
+    currency: string;
 };
 
 export async function POST(request: NextRequest) {
@@ -77,6 +78,7 @@ export async function POST(request: NextRequest) {
                         data: {
                             name: row.descripcion.trim(),
                             priceBase: new Decimal(row.price),
+                            currency: row.currency || 'ARS',
                             stockQty: new Decimal(row.stock),
                             taxRate: new Decimal(row.iva),
                             brandId: brand?.id || null,
@@ -92,10 +94,10 @@ export async function POST(request: NextRequest) {
                             name: row.descripcion.trim(),
                             slug: slug,
                             priceBase: new Decimal(row.price),
+                            currency: row.currency || 'ARS',
                             stockQty: new Decimal(row.stock),
                             taxRate: new Decimal(row.iva),
                             brandId: brand?.id || null,
-                            currency: 'ARS',
                             isActive: true,
                         }
                     });

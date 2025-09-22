@@ -7,6 +7,8 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import AccountSidebar from "@/components/AccountSidebar";
 import AddUserModal from "@/components/AddUserModal";
+import SellerSelector from "@/components/SellerSelector";
+import ConfirmationModal from "@/components/ConfirmationModal";
 
 interface User {
     id: string;
@@ -15,6 +17,7 @@ interface User {
     phone: string | null;
     role: string;
     isActive: boolean;
+    deleted: boolean;
     createdAt: string;
     assignedSeller?: {
         name: string;
@@ -33,6 +36,8 @@ function roleLabel(role: string) {
             return "Vendedor";
         case "CLIENT":
             return "Cliente";
+        case "DELETED":
+            return "Eliminados";
         default:
             return role;
     }
@@ -55,8 +60,12 @@ export default function UsersPage() {
     const { data: session, status } = useSession();
     const router = useRouter();
     const [users, setUsers] = useState<User[]>([]);
+    const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [roleFilter, setRoleFilter] = useState<string>("ALL");
+    const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+    const [userToDelete, setUserToDelete] = useState<{ id: string; name: string; deleted: boolean } | null>(null);
 
     // Verificar autenticación y permisos
     useEffect(() => {
@@ -81,6 +90,7 @@ export default function UsersPage() {
             if (response.ok) {
                 const data = await response.json();
                 setUsers(data);
+                setFilteredUsers(data);
             } else {
                 console.error('Error al obtener usuarios:', response.status);
             }
@@ -91,8 +101,65 @@ export default function UsersPage() {
         }
     };
 
+    // Filtrar usuarios cuando cambia el filtro de rol
+    useEffect(() => {
+        let filtered = users;
+        
+        // Por defecto, ocultar usuarios eliminados
+        if (roleFilter !== "DELETED") {
+            filtered = filtered.filter(user => !user.deleted);
+        }
+        
+        // Filtrar por rol
+        if (roleFilter === "ALL" || roleFilter === "DELETED") {
+            // Si es "ALL", ya se filtraron los eliminados arriba
+            // Si es "DELETED", mostrar solo eliminados
+            if (roleFilter === "DELETED") {
+                filtered = users.filter(user => user.deleted);
+            }
+        } else {
+            // Filtrar por rol específico (y ya se excluyeron los eliminados)
+            filtered = filtered.filter(user => user.role === roleFilter);
+        }
+        
+        setFilteredUsers(filtered);
+    }, [users, roleFilter]);
+
     const handleUserAdded = () => {
         fetchUsers(); // Recargar la lista después de agregar un usuario
+    };
+
+    const handleDeleteClick = (user: User) => {
+        setUserToDelete({
+            id: user.id,
+            name: user.name || user.email,
+            deleted: user.deleted
+        });
+        setConfirmModalOpen(true);
+    };
+
+    const handleToggleDeleted = async () => {
+        if (!userToDelete) return;
+
+        const response = await fetch(`/api/users/${userToDelete.id}/toggle-active`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Error al cambiar el estado del usuario');
+        }
+
+        // Recargar la lista después del éxito
+        fetchUsers();
+    };
+
+    const closeConfirmModal = () => {
+        setConfirmModalOpen(false);
+        setUserToDelete(null);
     };
 
     if (status === "loading" || loading) {
@@ -135,8 +202,19 @@ export default function UsersPage() {
                                 </div>
                                 <div className="flex items-center gap-4">
                                     <div className="text-sm text-[#646464]">
-                                        Total: {users.length} usuarios
+                                        Total: {filteredUsers.length} usuarios {roleFilter !== "ALL" && `(filtrado por ${roleLabel(roleFilter)})`}
                                     </div>
+                                    <select
+                                        value={roleFilter}
+                                        onChange={(e) => setRoleFilter(e.target.value)}
+                                        className="text-sm border border-[#B5B5B5]/40 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-[#384A93] focus:border-transparent"
+                                    >
+                                        <option value="ALL">Todos los roles</option>
+                                        <option value="ADMIN">Administradores</option>
+                                        <option value="SELLER">Vendedores</option>
+                                        <option value="CLIENT">Clientes</option>
+                                        <option value="DELETED">Eliminados</option>
+                                    </select>
                                     <button
                                         className="bg-[#384A93] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#2e3d7a] transition-colors flex items-center gap-2"
                                         onClick={() => setIsModalOpen(true)}
@@ -160,11 +238,12 @@ export default function UsersPage() {
                                         <th className="px-3 py-3 text-sm font-medium text-[#1C1C1C]">Vendedor Asignado</th>
                                         <th className="px-3 py-3 text-sm font-medium text-[#1C1C1C] text-center w-20">Clientes</th>
                                         <th className="px-3 py-3 text-sm font-medium text-[#1C1C1C] text-center w-28">Fecha Registro</th>
+                                        <th className="px-3 py-3 text-sm font-medium text-[#1C1C1C] text-center w-10"></th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[#B5B5B5]/20">
-                                    {users.map((user) => (
-                                        <tr key={user.id} className="hover:bg-[#F5F5F7]/50">
+                                    {filteredUsers.map((user) => (
+                                        <tr key={user.id} className={`hover:bg-[#F5F5F7]/50 ${user.deleted ? 'opacity-60 bg-gray-50' : ''}`}>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-10 h-10 bg-[#384A93] rounded-full flex items-center justify-center text-white text-sm font-medium">
@@ -173,6 +252,7 @@ export default function UsersPage() {
                                                     <div>
                                                         <div className="font-medium text-[#1C1C1C] text-sm">
                                                             {user.name || "Sin nombre"}
+                                                            {user.deleted && <span className="ml-2 text-red-500 text-xs">(Eliminado)</span>}
                                                         </div>
                                                         <div className="text-xs text-[#646464]">
                                                             {user.email}
@@ -194,29 +274,48 @@ export default function UsersPage() {
                                                     {user.isActive ? 'Activo' : 'Inactivo'}
                                                 </span>
                                             </td>
-                                            <td className="px-3 py-4">
-                                                {user.assignedSeller ? (
-                                                    <div className="text-sm">
-                                                        <div className="font-medium text-[#1C1C1C]">
-                                                            {user.assignedSeller.name}
-                                                        </div>
-                                                        <div className="text-xs text-[#646464]">
-                                                            {user.assignedSeller.email}
-                                                        </div>
-                                                    </div>
+                                            <td className="px-3 py-4 relative">
+                                                {user.role === 'CLIENT' ? (
+                                                    <SellerSelector
+                                                        userId={user.id}
+                                                        currentSeller={user.assignedSeller}
+                                                        onSellerAssigned={fetchUsers}
+                                                    />
                                                 ) : (
-                                                    <span className="text-sm text-[#646464]">—</span>
+                                                    <span className="text-[#646464] text-sm">—</span>
                                                 )}
                                             </td>
                                             <td className="px-3 py-4 text-center">
                                                 <span className="text-sm font-medium text-[#1C1C1C]">
-                                                    {user.role === 'SELLER' ? user._count.clients : '—'}
+                                                    {user.role === 'SELLER' || user.role === 'ADMIN' ? user._count.clients : '—'}
                                                 </span>
                                             </td>
                                             <td className="px-3 py-4 text-center">
                                                 <span className="text-xs text-[#646464]">
                                                     {new Date(user.createdAt).toLocaleDateString('es-AR')}
                                                 </span>
+                                            </td>
+                                            <td className="px-3 py-4 text-center">
+                                                <button
+                                                    onClick={() => handleDeleteClick(user)}
+                                                    className={`p-1 rounded transition-colors ${
+                                                        user.deleted
+                                                            ? 'text-green-600 hover:bg-green-100'
+                                                            : 'text-red-600 hover:bg-red-100'
+                                                    }`}
+                                                    title={user.deleted ? 'Restaurar usuario' : 'Eliminar usuario'}
+                                                >
+                                                    {user.deleted ? (
+                                                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fillRule="evenodd" d="M4 2a1 1 0 011 1v1h10V3a1 1 0 112 0v1h3a1 1 0 110 2h-1v11a2 2 0 01-2 2H3a2 2 0 01-2-2V6H0a1 1 0 110-2h3V3a1 1 0 011-1zm0 5v9h12V7H4z" clipRule="evenodd" />
+                                                            <path d="M7 9a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1z" />
+                                                        </svg>
+                                                    ) : (
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                    )}
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}
@@ -231,24 +330,28 @@ export default function UsersPage() {
                                     <div>
                                         <span className="text-[#646464]">Administradores:</span>
                                         <span className="ml-1 font-medium text-[#1C1C1C]">
-                                            {users.filter(u => u.role === 'ADMIN').length}
+                                            {filteredUsers.filter(u => u.role === 'ADMIN').length}
+                                            {roleFilter === "ALL" && ` / ${users.filter(u => u.role === 'ADMIN').length}`}
                                         </span>
                                     </div>
                                     <div>
                                         <span className="text-[#646464]">Vendedores:</span>
                                         <span className="ml-1 font-medium text-[#1C1C1C]">
-                                            {users.filter(u => u.role === 'SELLER').length}
+                                            {filteredUsers.filter(u => u.role === 'SELLER').length}
+                                            {roleFilter === "ALL" && ` / ${users.filter(u => u.role === 'SELLER').length}`}
                                         </span>
                                     </div>
                                     <div>
                                         <span className="text-[#646464]">Clientes:</span>
                                         <span className="ml-1 font-medium text-[#1C1C1C]">
-                                            {users.filter(u => u.role === 'CLIENT').length}
+                                            {filteredUsers.filter(u => u.role === 'CLIENT').length}
+                                            {roleFilter === "ALL" && ` / ${users.filter(u => u.role === 'CLIENT').length}`}
                                         </span>
                                     </div>
                                 </div>
                                 <div className="text-[#646464]">
-                                    Activos: {users.filter(u => u.isActive).length} de {users.length}
+                                    Activos: {filteredUsers.filter(u => u.isActive).length} de {filteredUsers.length}
+                                    {roleFilter !== "ALL" && ` (filtrados)`}
                                 </div>
                             </div>
                         </div>
@@ -261,6 +364,21 @@ export default function UsersPage() {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onUserAdded={handleUserAdded}
+            />
+
+            {/* Modal de confirmación para eliminar/restaurar usuario */}
+            <ConfirmationModal
+                isOpen={confirmModalOpen}
+                onClose={closeConfirmModal}
+                onConfirm={handleToggleDeleted}
+                title={userToDelete?.deleted ? "Restaurar Usuario" : "Eliminar Usuario"}
+                message={
+                    userToDelete?.deleted 
+                        ? `¿Estás seguro de que deseas restaurar al usuario "${userToDelete.name}"? El usuario volverá a estar activo en el sistema.`
+                        : `¿Estás seguro de que deseas eliminar al usuario "${userToDelete?.name}"?`
+                }
+                confirmText={userToDelete?.deleted ? "Restaurar" : "Eliminar"}
+                variant={userToDelete?.deleted ? "info" : "danger"}
             />
         </>
     );

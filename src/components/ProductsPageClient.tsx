@@ -8,10 +8,10 @@ type Product = {
     sku: string | null;
     name: string;
     priceBase: number;
+    currency: string;
     stockQty: number;
     taxRate: number | null;
     isActive: boolean;
-    isDeleted?: boolean;
     brand: {
         name: string;
     } | null;

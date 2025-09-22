@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import ProductCardRow from "./ProductCardRow";
 import ProductCardGrid from "./ProductCardGrid";
@@ -20,7 +21,6 @@ type Product = {
     priceBase: number;
     currency: string;
     taxRate: number | null;
-    stockQty: number | null;
     brand: {
         name: string;
         slug: string;
@@ -32,6 +32,7 @@ type CatalogClientProps = {
     products: Product[];
     selectedBrand: Brand | null;
     currentSlug: string;
+    searchTerm: string;
     totalProducts: number;
     currentPage: number;
     totalPages: number;
@@ -44,14 +45,64 @@ export default function CatalogClient({
     products, 
     selectedBrand, 
     currentSlug,
+    searchTerm,
     totalProducts,
     currentPage,
     totalPages,
     productsPerPage,
     isLoggedIn
 }: CatalogClientProps) {
+    const router = useRouter();
     const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
     const [brandsCollapsed, setBrandsCollapsed] = useState(false);
+    const [searchInput, setSearchInput] = useState(searchTerm);
+
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        const params = new URLSearchParams();
+        
+        if (currentSlug) {
+            params.set('brand', currentSlug);
+        }
+        if (searchInput.trim()) {
+            params.set('search', searchInput.trim());
+        }
+        
+        const queryString = params.toString();
+        const url = queryString ? `/catalogo?${queryString}` : '/catalogo';
+        router.push(url);
+    };
+
+    const clearSearch = () => {
+        setSearchInput('');
+        const params = new URLSearchParams();
+        
+        if (currentSlug) {
+            params.set('brand', currentSlug);
+        }
+        
+        const queryString = params.toString();
+        const url = queryString ? `/catalogo?${queryString}` : '/catalogo';
+        router.push(url);
+    };
+
+    // Helper function to build URLs with brand and search parameters
+    const buildUrl = (brandSlug?: string, pageNum?: number, searchQuery?: string) => {
+        const params = new URLSearchParams();
+        
+        if (brandSlug) {
+            params.set('brand', brandSlug);
+        }
+        if (searchQuery) {
+            params.set('search', searchQuery);
+        }
+        if (pageNum && pageNum > 1) {
+            params.set('page', pageNum.toString());
+        }
+        
+        const queryString = params.toString();
+        return queryString ? `/catalogo?${queryString}` : '/catalogo';
+    };
 
     return (
         <div className="w-full">
@@ -67,7 +118,43 @@ export default function CatalogClient({
                                     <p className="text-sm text-[#646464] mt-1">
                                         {totalProducts} {totalProducts === 1 ? 'PRODUCTO' : 'PRODUCTOS'}
                                         {selectedBrand && ` - ${selectedBrand.name.toUpperCase()}`}
+                                        {searchTerm && ` - Búsqueda: "${searchTerm}"`}
                                     </p>
+                                </div>
+                            </div>
+
+                            {/* Buscador */}
+                            <div className="bg-white rounded-lg border border-[#B5B5B5]/20">
+                                <div className="px-4 py-4">
+                                    <h3 className="font-medium text-[#1C1C1C] mb-3">Buscar productos</h3>
+                                    <form onSubmit={handleSearch} className="space-y-3">
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                value={searchInput}
+                                                onChange={(e) => setSearchInput(e.target.value)}
+                                                placeholder="SKU, nombre o descripción..."
+                                                className="w-full px-3 py-2 pr-10 text-sm border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#384A93] focus:border-transparent"
+                                            />
+                                            <button
+                                                type="submit"
+                                                className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 text-[#646464] hover:text-[#384A93] transition-colors"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        {searchTerm && (
+                                            <button
+                                                type="button"
+                                                onClick={clearSearch}
+                                                className="w-full px-3 py-1.5 text-xs text-[#646464] hover:text-[#384A93] border border-[#E5E5E5] rounded-md hover:border-[#384A93] transition-colors"
+                                            >
+                                                Limpiar búsqueda
+                                            </button>
+                                        )}
+                                    </form>
                                 </div>
                             </div>
 
@@ -92,7 +179,7 @@ export default function CatalogClient({
                                     <div className="border-t border-[#B5B5B5]/20">
                                         {/* Opción "Todas las marcas" */}
                                         <Link
-                                            href="/catalogo"
+                                            href={buildUrl(undefined, 1, searchTerm)}
                                             className={`flex items-center justify-between px-4 py-3 text-sm border-b border-[#B5B5B5]/10 last:border-b-0 transition-colors ${
                                                 !currentSlug 
                                                     ? "bg-[#384A93]/5 text-[#384A93] font-medium border-l-4 border-l-[#384A93]" 
@@ -112,7 +199,7 @@ export default function CatalogClient({
                                                 return (
                                                     <Link
                                                         key={b.id}
-                                                        href={`/catalogo?brand=${b.slug}`}
+                                                        href={buildUrl(b.slug, 1, searchTerm)}
                                                         className={`flex items-center justify-between px-4 py-3 text-sm border-b border-[#B5B5B5]/10 last:border-b-0 transition-colors ${
                                                             active 
                                                                 ? "bg-[#384A93]/5 text-[#384A93] font-medium border-l-4 border-l-[#384A93]" 
@@ -147,7 +234,7 @@ export default function CatalogClient({
                                         </>
                                     ) : (
                                         <>
-                                            <h1 className="text-xl sm:text-2xl font-semibold text-[#1C1C1C]">{selectedBrand.name}</h1>
+                                            <h1 className="text-xl sm:text-2xl font-semibold text-[#1C1C1C]">Productos {selectedBrand.name}</h1>
                                             <p className="mt-2 text-sm text-[#646464]">
                                                 Mostrando {((currentPage - 1) * productsPerPage) + 1}-{Math.min(currentPage * productsPerPage, totalProducts)} de {totalProducts} {totalProducts === 1 ? 'producto' : 'productos'}
                                             </p>
@@ -210,8 +297,7 @@ export default function CatalogClient({
                                                     priceBase={p.priceBase}
                                                     currency={p.currency}
                                                     taxRate={p.taxRate}
-                                                    stockQty={p.stockQty}
-                                                    brand={p.brand}
+                                                                    brand={p.brand}
                                                     isLoggedIn={isLoggedIn}
                                                 />
                                             ))}
@@ -230,8 +316,7 @@ export default function CatalogClient({
                                                     priceBase={p.priceBase}
                                                     currency={p.currency}
                                                     taxRate={p.taxRate}
-                                                    stockQty={p.stockQty}
-                                                    isLoggedIn={isLoggedIn}
+                                                                    isLoggedIn={isLoggedIn}
                                                 />
                                             ))}
                                         </div>
@@ -246,7 +331,7 @@ export default function CatalogClient({
                                         {/* Botón anterior */}
                                         {currentPage > 1 && (
                                             <Link
-                                                href={`/catalogo${selectedBrand ? `?brand=${selectedBrand.slug}&page=${currentPage - 1}` : `?page=${currentPage - 1}`}`}
+                                                href={buildUrl(selectedBrand?.slug, currentPage - 1, searchTerm)}
                                                 className="flex items-center px-3 py-2 text-sm border border-[#e1e8f4] bg-[#e1e8f4] text-[#384A93] rounded-full hover:bg-[#d1d8e4] transition-colors"
                                             >
                                                 <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -268,7 +353,7 @@ export default function CatalogClient({
                                                     pages.push(
                                                         <Link
                                                             key={1}
-                                                            href={`/catalogo${selectedBrand ? `?brand=${selectedBrand.slug}&page=1` : `?page=1`}`}
+                                                            href={buildUrl(selectedBrand?.slug, 1, searchTerm)}
                                                             className="flex items-center justify-center w-10 h-10 text-sm border border-[#e1e8f4] bg-[#e1e8f4] text-[#384A93] rounded-full hover:bg-[#d1d8e4] transition-colors"
                                                         >
                                                             1
@@ -288,7 +373,7 @@ export default function CatalogClient({
                                                     pages.push(
                                                         <Link
                                                             key={i}
-                                                            href={`/catalogo${selectedBrand ? `?brand=${selectedBrand.slug}&page=${i}` : `?page=${i}`}`}
+                                                            href={buildUrl(selectedBrand?.slug, i, searchTerm)}
                                                             className={`flex items-center justify-center w-10 h-10 text-sm rounded-full transition-colors ${
                                                                 i === currentPage
                                                                     ? 'bg-[#384A93] text-white'
@@ -312,7 +397,7 @@ export default function CatalogClient({
                                                     pages.push(
                                                         <Link
                                                             key={totalPages}
-                                                            href={`/catalogo${selectedBrand ? `?brand=${selectedBrand.slug}&page=${totalPages}` : `?page=${totalPages}`}`}
+                                                            href={buildUrl(selectedBrand?.slug, totalPages, searchTerm)}
                                                             className="flex items-center justify-center w-10 h-10 text-sm border border-[#e1e8f4] bg-[#e1e8f4] text-[#384A93] rounded-full hover:bg-[#d1d8e4] transition-colors"
                                                         >
                                                             {totalPages}
@@ -327,7 +412,7 @@ export default function CatalogClient({
                                         {/* Botón siguiente */}
                                         {currentPage < totalPages && (
                                             <Link
-                                                href={`/catalogo${selectedBrand ? `?brand=${selectedBrand.slug}&page=${currentPage + 1}` : `?page=${currentPage + 1}`}`}
+                                                href={buildUrl(selectedBrand?.slug, currentPage + 1, searchTerm)}
                                                 className="flex items-center px-3 py-2 text-sm border border-[#e1e8f4] bg-[#e1e8f4] text-[#384A93] rounded-full hover:bg-[#d1d8e4] transition-colors"
                                             >
                                                 Siguiente

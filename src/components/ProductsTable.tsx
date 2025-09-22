@@ -11,10 +11,10 @@ type Product = {
     sku: string | null;
     name: string;
     priceBase: number;
+    currency: string;
     stockQty: number;
     taxRate: number | null;
     isActive: boolean;
-    isDeleted?: boolean;
     brand: {
         name: string;
     } | null;
@@ -77,9 +77,6 @@ export default function ProductsTable({ products, onImportSuccess }: ProductsTab
 
     const filteredProducts = useMemo(() => {
         return localProducts.filter(product => {
-            // Excluir productos eliminados
-            if (product.isDeleted) return false;
-
             // Filtro por texto
             const matchesSearch = !searchTerm.trim() || (() => {
                 const term = searchTerm.toLowerCase().trim();
@@ -173,6 +170,7 @@ export default function ProductsTable({ products, onImportSuccess }: ProductsTab
                                 <th className="text-left px-4 py-3 font-medium text-[#1C1C1C]">Producto</th>
                                 <th className="text-left px-4 py-3 font-medium text-[#1C1C1C]">Marca</th>
                                 <th className="text-right px-4 py-3 font-medium text-[#1C1C1C]">Precio</th>
+                                <th className="text-center px-4 py-3 font-medium text-[#1C1C1C]">Moneda</th>
                                 <th className="text-right px-4 py-3 font-medium text-[#1C1C1C]">Stock</th>
                                 <th className="text-center px-4 py-3 font-medium text-[#1C1C1C]">IVA</th>
                                 <th className="text-center px-4 py-3 font-medium text-[#1C1C1C]">Estado</th>
@@ -194,10 +192,19 @@ export default function ProductsTable({ products, onImportSuccess }: ProductsTab
                                         {product.brand?.name || '-'}
                                     </td>
                                     <td className="px-4 py-3 text-right font-mono">
-                                        ${product.priceBase.toLocaleString('es-AR', { 
+                                        {product.currency === 'USD' ? 'U$S' : '$'}{product.priceBase.toLocaleString('es-AR', { 
                                             minimumFractionDigits: 2,
                                             maximumFractionDigits: 2 
                                         })}
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                        <span className={`inline-flex px-2 py-1 text-xs rounded-full font-medium ${
+                                            product.currency === 'USD' 
+                                                ? 'bg-green-100 text-green-800' 
+                                                : 'bg-blue-100 text-blue-800'
+                                        }`}>
+                                            {product.currency === 'USD' ? 'USD' : 'ARS'}
+                                        </span>
                                     </td>
                                     <td className="px-4 py-3 text-right">
                                         <EditableStock
