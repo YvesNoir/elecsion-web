@@ -16,6 +16,7 @@ type SidebarItem = {
 const baseMenuItems: SidebarItem[] = [
     { href: "/mi-cuenta", label: "Mi Cuenta" },
     { href: "/mi-cuenta/perfil", label: "Perfil" },
+    { href: "/mi-cuenta/cambiar-password", label: "Cambiar Contraseña" },
 ];
 
 const clientMenuItems: SidebarItem[] = [

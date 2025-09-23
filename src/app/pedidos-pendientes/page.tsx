@@ -363,7 +363,9 @@ export default function PendingOrdersPage() {
                                                 </td>
                                                 <td className="px-4 py-4 text-center">
                                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                        order.type === 'QUOTE' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                                                        order.clientUser 
+                                                            ? 'bg-blue-100 text-blue-800'   // Pedidos de clientes registrados
+                                                            : 'bg-purple-100 text-purple-800'  // Cotizaciones sin usuario registrado
                                                     }`}>
                                                         {getTypeLabel(order.type)}
                                                     </span>
