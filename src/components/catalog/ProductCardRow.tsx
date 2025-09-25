@@ -3,6 +3,7 @@
 
 import React, { useMemo, useState, useEffect } from "react";
 import { useCart } from "@/store/cart";
+import { getProductImageUrl } from "@/lib/utils/image";
 
 type Props = {
     sku: string | null;
@@ -93,9 +94,7 @@ export default function ProductCardRow({
     const isUSD = currency?.toUpperCase() === 'USD';
 
     const normalizedSku = (sku ?? "").trim();
-    const imgSrc = normalizedSku
-        ? `/product-images/${normalizedSku}.png`
-        : "/product-images/placeholder.png";
+    const imgSrc = getProductImageUrl(normalizedSku);
 
     const dec = () => setQty((q) => Math.max(0, q - 1));
     const inc = () => setQty((q) => Math.min(9999, q + 1));
