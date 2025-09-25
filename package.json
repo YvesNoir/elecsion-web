@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "prisma:seed": "tsx prisma/seed.ts",
-    "import:xlsx": "tsx scripts/import-from-xlsx.ts"
+    "import:xlsx": "tsx scripts/import-from-xlsx.ts",
+    "db:backup": "sqlite3 prisma/dev.db \".dump\" > database/backups/backup_$(date +%Y%m%d_%H%M%S).sql",
+    "db:restore": "sqlite3 prisma/dev.db < database/backups/production_backup.sql"
   },
   "dependencies": {
     "@prisma/client": "^6.15.0",

@@ -1,5 +1,7 @@
 "use client";
 
+import { getProductImageUrl } from "@/lib/utils/image";
+
 type ProductImageProps = {
     sku: string;
     alt?: string;
@@ -9,7 +11,7 @@ type ProductImageProps = {
 export default function ProductImage({ sku, alt, className }: ProductImageProps) {
     return (
         <img
-            src={`/product-images/${sku}.png`}
+            src={getProductImageUrl(sku)}
             alt={alt || sku}
             className={className}
             onError={(e) => {
