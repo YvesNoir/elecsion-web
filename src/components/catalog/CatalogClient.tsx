@@ -21,6 +21,7 @@ type Product = {
     priceBase: number;
     currency: string;
     taxRate: number | null;
+    featured: boolean;
     brand: {
         name: string;
         slug: string;
@@ -33,6 +34,7 @@ type CatalogClientProps = {
     selectedBrand: Brand | null;
     currentSlug: string;
     searchTerm: string;
+    showFeatured: boolean;
     totalProducts: number;
     currentPage: number;
     totalPages: number;
@@ -46,6 +48,7 @@ export default function CatalogClient({
     selectedBrand, 
     currentSlug,
     searchTerm,
+    showFeatured,
     totalProducts,
     currentPage,
     totalPages,
@@ -67,6 +70,9 @@ export default function CatalogClient({
         if (searchInput.trim()) {
             params.set('search', searchInput.trim());
         }
+        if (showFeatured) {
+            params.set('destacados', 'true');
+        }
         
         const queryString = params.toString();
         const url = queryString ? `/catalogo?${queryString}` : '/catalogo';
@@ -80,6 +86,9 @@ export default function CatalogClient({
         if (currentSlug) {
             params.set('brand', currentSlug);
         }
+        if (showFeatured) {
+            params.set('destacados', 'true');
+        }
         
         const queryString = params.toString();
         const url = queryString ? `/catalogo?${queryString}` : '/catalogo';
@@ -87,7 +96,7 @@ export default function CatalogClient({
     };
 
     // Helper function to build URLs with brand and search parameters
-    const buildUrl = (brandSlug?: string, pageNum?: number, searchQuery?: string) => {
+    const buildUrl = (brandSlug?: string, pageNum?: number, searchQuery?: string, featured?: boolean) => {
         const params = new URLSearchParams();
         
         if (brandSlug) {
@@ -95,6 +104,9 @@ export default function CatalogClient({
         }
         if (searchQuery) {
             params.set('search', searchQuery);
+        }
+        if (featured) {
+            params.set('destacados', 'true');
         }
         if (pageNum && pageNum > 1) {
             params.set('page', pageNum.toString());
@@ -179,7 +191,7 @@ export default function CatalogClient({
                                     <div className="border-t border-[#B5B5B5]/20">
                                         {/* Opción "Todas las marcas" */}
                                         <Link
-                                            href={buildUrl(undefined, 1, searchTerm)}
+                                            href={buildUrl(undefined, 1, searchTerm, showFeatured)}
                                             className={`flex items-center justify-between px-4 py-3 text-sm border-b border-[#B5B5B5]/10 last:border-b-0 transition-colors ${
                                                 !currentSlug 
                                                     ? "bg-[#384A93]/5 text-[#384A93] font-medium border-l-4 border-l-[#384A93]" 
@@ -199,7 +211,7 @@ export default function CatalogClient({
                                                 return (
                                                     <Link
                                                         key={b.id}
-                                                        href={buildUrl(b.slug, 1, searchTerm)}
+                                                        href={buildUrl(b.slug, 1, searchTerm, showFeatured)}
                                                         className={`flex items-center justify-between px-4 py-3 text-sm border-b border-[#B5B5B5]/10 last:border-b-0 transition-colors ${
                                                             active 
                                                                 ? "bg-[#384A93]/5 text-[#384A93] font-medium border-l-4 border-l-[#384A93]" 
@@ -331,7 +343,7 @@ export default function CatalogClient({
                                         {/* Botón anterior */}
                                         {currentPage > 1 && (
                                             <Link
-                                                href={buildUrl(selectedBrand?.slug, currentPage - 1, searchTerm)}
+                                                href={buildUrl(selectedBrand?.slug, currentPage - 1, searchTerm, showFeatured)}
                                                 className="flex items-center px-3 py-2 text-sm border border-[#e1e8f4] bg-[#e1e8f4] text-[#384A93] rounded-full hover:bg-[#d1d8e4] transition-colors"
                                             >
                                                 <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -353,7 +365,7 @@ export default function CatalogClient({
                                                     pages.push(
                                                         <Link
                                                             key={1}
-                                                            href={buildUrl(selectedBrand?.slug, 1, searchTerm)}
+                                                            href={buildUrl(selectedBrand?.slug, 1, searchTerm, showFeatured)}
                                                             className="flex items-center justify-center w-10 h-10 text-sm border border-[#e1e8f4] bg-[#e1e8f4] text-[#384A93] rounded-full hover:bg-[#d1d8e4] transition-colors"
                                                         >
                                                             1
@@ -373,7 +385,7 @@ export default function CatalogClient({
                                                     pages.push(
                                                         <Link
                                                             key={i}
-                                                            href={buildUrl(selectedBrand?.slug, i, searchTerm)}
+                                                            href={buildUrl(selectedBrand?.slug, i, searchTerm, showFeatured)}
                                                             className={`flex items-center justify-center w-10 h-10 text-sm rounded-full transition-colors ${
                                                                 i === currentPage
                                                                     ? 'bg-[#384A93] text-white'
@@ -397,7 +409,7 @@ export default function CatalogClient({
                                                     pages.push(
                                                         <Link
                                                             key={totalPages}
-                                                            href={buildUrl(selectedBrand?.slug, totalPages, searchTerm)}
+                                                            href={buildUrl(selectedBrand?.slug, totalPages, searchTerm, showFeatured)}
                                                             className="flex items-center justify-center w-10 h-10 text-sm border border-[#e1e8f4] bg-[#e1e8f4] text-[#384A93] rounded-full hover:bg-[#d1d8e4] transition-colors"
                                                         >
                                                             {totalPages}
@@ -412,7 +424,7 @@ export default function CatalogClient({
                                         {/* Botón siguiente */}
                                         {currentPage < totalPages && (
                                             <Link
-                                                href={buildUrl(selectedBrand?.slug, currentPage + 1, searchTerm)}
+                                                href={buildUrl(selectedBrand?.slug, currentPage + 1, searchTerm, showFeatured)}
                                                 className="flex items-center px-3 py-2 text-sm border border-[#e1e8f4] bg-[#e1e8f4] text-[#384A93] rounded-full hover:bg-[#d1d8e4] transition-colors"
                                             >
                                                 Siguiente

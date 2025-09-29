@@ -89,8 +89,9 @@ export default function UsersPage() {
             const response = await fetch('/api/users/all');
             if (response.ok) {
                 const data = await response.json();
-                setUsers(data);
-                setFilteredUsers(data);
+                const usersArray = data.users || [];
+                setUsers(usersArray);
+                setFilteredUsers(usersArray);
             } else {
                 console.error('Error al obtener usuarios:', response.status);
             }

@@ -12,6 +12,7 @@ type Product = {
     stockQty: number;
     taxRate: number | null;
     isActive: boolean;
+    featured: boolean;
     brand: {
         name: string;
     } | null;

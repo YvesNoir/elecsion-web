@@ -57,13 +57,21 @@ function formatDate(dateString: string) {
 }
 
 function formatDateTime(dateString: string) {
-    return new Date(dateString).toLocaleDateString('es-AR', {
-        year: 'numeric',
+    const date = new Date(dateString);
+    const day = date.getDate();
+    const month = date.toLocaleDateString('es-AR', { 
         month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+        timeZone: 'America/Argentina/Buenos_Aires'
     });
+    const year = date.getFullYear();
+    const time = date.toLocaleTimeString('es-AR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: 'America/Argentina/Buenos_Aires'
+    });
+    
+    return `${day} ${month} ${year} ${time}`;
 }
 
 function getStatusLabel(status: string) {
@@ -130,15 +138,19 @@ export default function PendingOrdersPage() {
                 const data = await response.json();
                 
                 // Si es vendedor, filtrar solo los pedidos asignados a él
+                let ordersToShow = data;
                 if (session?.user.role === "SELLER") {
-                    const sellerOrders = data.filter((order: Order) => 
+                    ordersToShow = data.filter((order: Order) => 
                         order.sellerUser?.email === session.user.email
                     );
-                    setOrders(sellerOrders);
-                } else {
-                    // Los admins ven todos los pedidos
-                    setOrders(data);
                 }
+                
+                // Ordenar por fecha y hora (más recientes primero)
+                ordersToShow.sort((a: Order, b: Order) => {
+                    return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
+                });
+                
+                setOrders(ordersToShow);
             } else {
                 console.error('Error al obtener pedidos:', response.status);
             }
@@ -342,7 +354,7 @@ export default function PendingOrdersPage() {
                                         <th className="px-4 py-3 text-sm font-medium text-[#1C1C1C] text-center w-32">Items/Total</th>
                                         <th className="px-4 py-3 text-sm font-medium text-[#1C1C1C] text-center w-24">Estado</th>
                                         <th className="px-4 py-3 text-sm font-medium text-[#1C1C1C] w-36">Vendedor</th>
-                                        <th className="px-4 py-3 text-sm font-medium text-[#1C1C1C] text-center w-24">Fecha</th>
+                                        <th className="px-4 py-3 text-sm font-medium text-[#1C1C1C] text-center w-32">Fecha</th>
                                         <th className="px-4 py-3 text-sm font-medium text-[#1C1C1C] text-center w-24">Acciones</th>
                                     </tr>
                                 </thead>
@@ -413,7 +425,7 @@ export default function PendingOrdersPage() {
                                                 </td>
                                                 <td className="px-4 py-4 text-center">
                                                     <span className="text-xs text-[#646464]">
-                                                        {formatDate(order.submittedAt)}
+                                                        {formatDateTime(order.submittedAt)}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-4 text-center">

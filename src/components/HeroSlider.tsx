@@ -16,10 +16,10 @@ type Slide = {
 const slides: Slide[] = [
     {
         id: 1,
-        title: "Calidad, variedad y listas para instalar",
-        description: "Descubre nuestra amplia gama de productos eléctricos de primera calidad",
-        buttonText: "Conocer",
-        buttonLink: "/catalogo",
+        title: "Productos destacados a precios increibles",
+        description: "Descubre nuestra amplia gama de productos de primera calidad, a precios competitivos",
+        buttonText: "Visitar productos destacados",
+        buttonLink: "/catalogo?destacados",
         backgroundImage: "/hero-banner/hero-banner-1.jpg"
     },
     {

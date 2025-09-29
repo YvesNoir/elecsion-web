@@ -7,7 +7,7 @@ export const revalidate = 30;
 
 type Props = {
     // En Next 15 searchParams es async
-    searchParams: Promise<{ brand?: string; page?: string; search?: string }>;
+    searchParams: Promise<{ brand?: string; page?: string; search?: string; destacados?: string }>;
 };
 
 export default async function CatalogoPage({ searchParams }: Props) {
@@ -15,6 +15,7 @@ export default async function CatalogoPage({ searchParams }: Props) {
     const session = await getSession();
     const currentSlug = (params?.brand ?? "").toLowerCase().trim();
     const searchTerm = (params?.search ?? "").trim();
+    const showFeatured = params?.destacados === "true" || params?.destacados === "";
     const currentPage = parseInt(params?.page ?? "1", 10);
     const productsPerPage = 30;
     const skip = (currentPage - 1) * productsPerPage;
@@ -54,6 +55,7 @@ export default async function CatalogoPage({ searchParams }: Props) {
         isActive: true,
         isDeleted: false,
         ...(selectedBrand && { brandId: selectedBrand.id }),
+        ...(showFeatured && { featured: true }),
         ...searchConditions,
     };
 
@@ -77,6 +79,7 @@ export default async function CatalogoPage({ searchParams }: Props) {
             priceBase: true,  // Prisma.Decimal
             currency: true,
             taxRate: true,    // Prisma.Decimal | null
+            featured: true,
             brand: {
                 select: {
                     name: true,
@@ -95,6 +98,7 @@ export default async function CatalogoPage({ searchParams }: Props) {
         priceBase: p.priceBase ? Number(p.priceBase) : 0,
         currency: p.currency ?? "ARS",
         taxRate: p.taxRate === null ? null : Number(p.taxRate),
+        featured: p.featured,
         brand: p.brand,
     }));
 
@@ -105,6 +109,7 @@ export default async function CatalogoPage({ searchParams }: Props) {
             selectedBrand={selectedBrand}
             currentSlug={currentSlug}
             searchTerm={searchTerm}
+            showFeatured={showFeatured}
             totalProducts={totalProducts}
             currentPage={currentPage}
             totalPages={totalPages}

@@ -22,6 +22,7 @@ export default async function ProductosPage() {
             stockQty: true,
             taxRate: true,
             isActive: true,
+            featured: true,
             brand: {
                 select: {
                     name: true
@@ -55,14 +56,14 @@ export default async function ProductosPage() {
                 <span className="mx-2 text-[#646464]">Productos</span>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                {/* Sidebar - 1/4 del ancho */}
+            <div className="grid grid-cols-1 lg:grid-cols-6 gap-6">
+                {/* Sidebar - 1/6 del ancho */}
                 <div className="lg:col-span-1">
                     <AccountSidebar />
                 </div>
 
-                {/* Contenido principal - 3/4 del ancho */}
-                <div className="lg:col-span-3">
+                {/* Contenido principal - 5/6 del ancho */}
+                <div className="lg:col-span-5">
                     <div className="bg-white rounded-lg border border-[#B5B5B5]/40 overflow-hidden">
                         <div className="px-6 py-4 border-b border-[#B5B5B5]/40">
                             <h1 className="text-xl font-semibold text-[#1C1C1C]">Productos</h1>
