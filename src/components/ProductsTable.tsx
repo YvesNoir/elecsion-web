@@ -23,9 +23,11 @@ type Product = {
 type ProductsTableProps = {
     products: Product[];
     onImportSuccess?: () => void;
+    allBrands?: string[];
+    selectedBrandSlug?: string;
 };
 
-export default function ProductsTable({ products, onImportSuccess }: ProductsTableProps) {
+export default function ProductsTable({ products, onImportSuccess, allBrands, selectedBrandSlug }: ProductsTableProps) {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedBrand, setSelectedBrand] = useState('');
     const [showImporter, setShowImporter] = useState(false);
@@ -35,6 +37,17 @@ export default function ProductsTable({ products, onImportSuccess }: ProductsTab
     useEffect(() => {
         setLocalProducts(products);
     }, [products]);
+
+    // Establecer marca seleccionada al cargar basándose en el slug
+    useEffect(() => {
+        if (selectedBrandSlug && products.length > 0) {
+            // Encontrar un producto que tenga la marca con el slug proporcionado
+            const productWithBrand = products.find(p => p.brand?.name);
+            if (productWithBrand?.brand?.name) {
+                setSelectedBrand(productWithBrand.brand.name);
+            }
+        }
+    }, [selectedBrandSlug, products]);
 
     // Función para manejar el cambio de estado del producto
     const handleStatusChange = (productId: string, newStatus: boolean) => {
@@ -65,15 +78,19 @@ export default function ProductsTable({ products, onImportSuccess }: ProductsTab
         );
     };
 
-    // Extraer marcas únicas
+    // Usar todas las marcas pasadas como props, o extraer de productos como fallback
     const uniqueBrands = useMemo(() => {
+        if (allBrands && allBrands.length > 0) {
+            return allBrands;
+        }
+        // Fallback: extraer marcas de los productos actuales
         const brands = products
             .map(product => product.brand?.name)
             .filter((brand): brand is string => Boolean(brand))
             .filter((brand, index, array) => array.indexOf(brand) === index)
             .sort();
         return brands;
-    }, [products]);
+    }, [allBrands, products]);
 
     const filteredProducts = useMemo(() => {
         return localProducts.filter(product => {

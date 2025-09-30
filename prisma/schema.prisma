@@ -44,6 +44,7 @@ model Brand {
   code      Int?      @unique
   name      String
   slug      String    @unique
+  isActive  Boolean   @default(true) @map("is_active")
   createdAt DateTime  @default(now()) @map("created_at")
   products  Product[]
 
