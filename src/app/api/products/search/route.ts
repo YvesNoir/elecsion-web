@@ -6,54 +6,70 @@ export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
         const query = searchParams.get("q");
+        const brandId = searchParams.get("brand");
+        const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 100);
 
         if (!query || query.trim().length < 2) {
-            return NextResponse.json([]);
+            return NextResponse.json({ products: [] });
         }
 
-        const searchTerm = query.trim().toLowerCase();
+        const searchTerm = query.trim();
 
-        // Buscar productos que coincidan con:
-        // 1. SKU (exacto o que contenga el término)
-        // 2. Nombre del producto (que contenga el término)
-        // 3. Nombre de la marca (que contenga el término)
-        // Nota: Para búsqueda case-insensitive en SQLite, uso prisma.$queryRaw
-        const products = await prisma.$queryRaw`
-            SELECT 
-                p.id,
-                p.sku,
-                p.name,
-                p.price_base as priceBase,
-                p.currency,
-                b.name as brandName,
-                b.slug as brandSlug
-            FROM Product p
-            INNER JOIN Brand b ON p.brand_id = b.id
-            WHERE 
-                p.is_active = 1 
-                AND (
-                    LOWER(p.sku) LIKE ${'%' + searchTerm + '%'}
-                    OR LOWER(p.name) LIKE ${'%' + searchTerm + '%'}
-                    OR LOWER(b.name) LIKE ${'%' + searchTerm + '%'}
-                )
-            ORDER BY p.sku, p.name
-            LIMIT 20
-        `;
+        // Construir filtros base
+        const whereConditions: any = {
+            isActive: true,
+            isDeleted: false,
+            OR: [
+                { sku: { contains: searchTerm, mode: 'insensitive' } },
+                { name: { contains: searchTerm, mode: 'insensitive' } },
+                { description: { contains: searchTerm, mode: 'insensitive' } },
+                { brand: { name: { contains: searchTerm, mode: 'insensitive' } } }
+            ]
+        };
 
-        // Transformar el resultado para que coincida con la estructura esperada
+        // Agregar filtro por marca si se especifica
+        if (brandId) {
+            whereConditions.brandId = brandId;
+        }
+
+        // Buscar productos usando Prisma ORM para mejor compatibilidad
+        const products = await prisma.product.findMany({
+            where: whereConditions,
+            select: {
+                id: true,
+                sku: true,
+                name: true,
+                priceBase: true,
+                currency: true,
+                stockQty: true,
+                unit: true,
+                brand: {
+                    select: {
+                        name: true,
+                        slug: true
+                    }
+                }
+            },
+            orderBy: [
+                { sku: 'asc' },
+                { name: 'asc' }
+            ],
+            take: limit
+        });
+
+        // Transformar el resultado para serializarlo
         const serializedProducts = products.map(product => ({
             id: product.id,
             sku: product.sku,
             name: product.name,
             priceBase: Number(product.priceBase || 0),
             currency: product.currency || "ARS",
-            brand: {
-                name: product.brandName,
-                slug: product.brandSlug
-            }
+            stockQty: product.stockQty ? Number(product.stockQty) : 0,
+            unit: product.unit,
+            brand: product.brand
         }));
 
-        return NextResponse.json(serializedProducts);
+        return NextResponse.json({ products: serializedProducts });
 
     } catch (error) {
         console.error("Error searching products:", error);
