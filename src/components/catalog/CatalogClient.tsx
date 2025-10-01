@@ -25,6 +25,7 @@ type Product = {
         name: string;
         slug: string;
     } | null;
+    description?: string | null;
 };
 
 type CatalogClientProps = {
@@ -54,7 +55,7 @@ export default function CatalogClient({
 }: CatalogClientProps) {
     const router = useRouter();
     const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-    const [brandsCollapsed, setBrandsCollapsed] = useState(false);
+    const [brandsCollapsed, setBrandsCollapsed] = useState(true);
     const [searchInput, setSearchInput] = useState(searchTerm);
 
     const handleSearch = (e: React.FormEvent) => {
@@ -111,8 +112,8 @@ export default function CatalogClient({
                     {/* Sidebar filtros */}
                     <aside className="col-span-12 md:col-span-3">
                         <div className="space-y-4">
-                            {/* Header de filtros */}
-                            <div className="bg-white rounded-lg border border-[#B5B5B5]/20">
+                            {/* Header de filtros - Solo desktop */}
+                            <div className="hidden md:block bg-white rounded-lg border border-[#B5B5B5]/20">
                                 <div className="px-4 py-4">
                                     <h2 className="text-lg font-medium text-[#1C1C1C]">Filtros</h2>
                                     <p className="text-sm text-[#646464] mt-1">
@@ -244,32 +245,32 @@ export default function CatalogClient({
 
                                 {/* Toggle de vista */}
                                 {products.length > 0 && (
-                                    <div className="flex items-center gap-2 bg-[#F5F5F7] rounded-lg p-1">
+                                    <div className="flex items-center gap-1 bg-[#F5F5F7] rounded-lg p-1">
                                         <button
                                             onClick={() => setViewMode('list')}
-                                            className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded transition-colors ${
-                                                viewMode === 'list' 
-                                                    ? 'bg-white text-[#384A93] shadow-sm' 
+                                            className={`flex items-center justify-center p-2 rounded transition-colors ${
+                                                viewMode === 'list'
+                                                    ? 'bg-white text-[#384A93] shadow-sm'
                                                     : 'text-[#646464] hover:text-[#1C1C1C]'
                                             }`}
+                                            title="Vista en lista"
                                         >
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
                                             </svg>
-                                            Lista
                                         </button>
                                         <button
                                             onClick={() => setViewMode('grid')}
-                                            className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded transition-colors ${
-                                                viewMode === 'grid' 
-                                                    ? 'bg-white text-[#384A93] shadow-sm' 
+                                            className={`flex items-center justify-center p-2 rounded transition-colors ${
+                                                viewMode === 'grid'
+                                                    ? 'bg-white text-[#384A93] shadow-sm'
                                                     : 'text-[#646464] hover:text-[#1C1C1C]'
                                             }`}
+                                            title="Vista en tarjetas"
                                         >
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                                             </svg>
-                                            Tarjetas
                                         </button>
                                     </div>
                                 )}
@@ -297,7 +298,8 @@ export default function CatalogClient({
                                                     priceBase={p.priceBase}
                                                     currency={p.currency}
                                                     taxRate={p.taxRate}
-                                                                    brand={p.brand}
+                                                    brand={p.brand}
+                                                    description={p.description}
                                                     isLoggedIn={isLoggedIn}
                                                 />
                                             ))}
@@ -316,7 +318,9 @@ export default function CatalogClient({
                                                     priceBase={p.priceBase}
                                                     currency={p.currency}
                                                     taxRate={p.taxRate}
-                                                                    isLoggedIn={isLoggedIn}
+                                                    brand={p.brand}
+                                                    description={p.description}
+                                                    isLoggedIn={isLoggedIn}
                                                 />
                                             ))}
                                         </div>

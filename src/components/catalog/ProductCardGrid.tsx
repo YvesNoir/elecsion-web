@@ -11,6 +11,11 @@ type ProductCardGridProps = {
     priceBase: number;
     currency: string;
     taxRate: number | null;
+    brand?: {
+        name: string;
+        slug: string;
+    } | null;
+    description?: string | null;
     isLoggedIn: boolean;
 };
 
@@ -26,6 +31,8 @@ export default function ProductCardGrid({
     priceBase,
     currency,
     taxRate,
+    brand,
+    description,
     isLoggedIn,
 }: ProductCardGridProps) {
     const [qty, setQty] = useState(0);
@@ -77,7 +84,7 @@ export default function ProductCardGrid({
                 </div>
 
                 {/* Nombre del producto */}
-                <h3 className="text-sm font-medium text-[#1C1C1C] mb-2 min-h-[2.5rem] overflow-hidden" 
+                <h3 className="text-sm font-medium text-[#1C1C1C] mb-2 min-h-[2.5rem] overflow-hidden"
                     style={{
                         display: '-webkit-box',
                         WebkitLineClamp: 2,
@@ -85,7 +92,6 @@ export default function ProductCardGrid({
                     }}>
                     {name}
                 </h3>
-
 
                 {/* Precio */}
                 <div className="mb-3">
@@ -117,7 +123,7 @@ export default function ProductCardGrid({
                             placeholder="0"
                         />
                     </div>
-                    
+
                     <button
                         onClick={handleAddToCart}
                         className="w-full px-3 py-2 bg-[#384A93] text-white text-sm rounded-md hover:bg-[#2e3d7a] transition-colors"

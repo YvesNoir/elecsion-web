@@ -16,6 +16,7 @@ type Props = {
         name: string;
         slug: string;
     } | null;
+    description?: string | null;
     isLoggedIn: boolean;
 };
 
@@ -45,6 +46,7 @@ export default function ProductCardRow({
                                            currency,
                                            taxRate,
                                            brand,
+                                           description,
                                            isLoggedIn,
                                        }: Props) {
     // carrito tolerante a distintas implementaciones
@@ -114,129 +116,241 @@ export default function ProductCardRow({
     };
 
     return (
-        <li className="rounded-lg border border-[#E5E5E5] bg-white px-4 py-3 sm:px-5 sm:py-4 shadow-sm hover:shadow transition">
-            {/* GRID 12 -> 4/2/2/2/2 */}
-            <div className="grid grid-cols-12 items-center gap-4">
-                {/* 33%: imagen + datos */}
-                <div className="col-span-12 md:col-span-4 overflow-hidden">
-                    <div className="flex items-center gap-3 min-w-0">
-                        <div className="h-14 w-14 flex-none overflow-hidden rounded-md ring-1 ring-gray-200 bg-gray-50">
-                            <img
-                                src={imgSrc}
-                                alt={normalizedSku || "Producto"}
-                                width={56}
-                                height={56}
-                                loading="lazy"
-                                className="h-14 w-14 object-cover"
-                                onError={(e) => {
-                                    const el = e.currentTarget as HTMLImageElement;
-                                    el.onerror = null;
-                                    el.src = "/product-images/placeholder.png";
-                                }}
-                            />
-                        </div>
-                        <div className="min-w-0">
-                            <div className="text-sm text-[#646464] leading-none truncate">
-                                {normalizedSku ? (
-                                    <span className="font-medium text-[#1C1C1C]">{normalizedSku}</span>
-                                ) : (
-                                    <span className="text-[#9a9a9a]">Sin SKU</span>
-                                )}
+        <li className="rounded-lg border border-[#E5E5E5] bg-white shadow-sm hover:shadow transition">
+            {/* Layout móvil */}
+            <div className="md:hidden p-4">
+                <div className="flex gap-4">
+                    {/* Imagen izquierda */}
+                    <div className="w-20 h-20 flex-shrink-0 overflow-hidden rounded-md bg-gray-50 flex items-center justify-center">
+                        <img
+                            src={imgSrc}
+                            alt={normalizedSku || "Producto"}
+                            loading="lazy"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                                const el = e.currentTarget as HTMLImageElement;
+                                el.onerror = null;
+                                el.src = "/product-images/placeholder.png";
+                            }}
+                        />
+                    </div>
+
+                    {/* Contenido derecha */}
+                    <div className="flex-1 min-w-0">
+                        {/* Header: SKU + Controles */}
+                        <div className="flex justify-between items-start mb-2">
+                            <div className="text-lg font-medium text-[#646464]">
+                                {normalizedSku || "Sin SKU"}
                             </div>
-                            <div className="mt-1 truncate text-[15px] text-[#1C1C1C]">{name}</div>
-                            {!!unit && <div className="mt-0.5 text-xs text-[#7a7a7a]">U.M.: {unit}</div>}
+                            <div className="flex items-center rounded-full border border-[#e1e8f4] bg-[#e1e8f4] overflow-hidden ml-2">
+                                <button type="button" onClick={dec} className="h-8 w-8 text-sm text-[#384A93] hover:bg-[#d1d8e4] transition-colors" aria-label="Restar">–</button>
+                                <div className="h-8 min-w-[2rem] px-1 text-center text-sm leading-8 text-[#384A93] font-medium">{qty}</div>
+                                <button type="button" onClick={inc} className="h-8 w-8 text-sm text-[#384A93] hover:bg-[#d1d8e4] transition-colors" aria-label="Sumar">+</button>
+                            </div>
                         </div>
-                    </div>
-                </div>
 
-                {/* 17%: Marca */}
-                <div className="col-span-4 md:col-span-2">
-                    <div className="text-[11px] uppercase tracking-wide text-[#7a7a7a]">Marca</div>
-                    <div className="mt-1 text-[#1C1C1C]">
-                        {brand?.name || "—"}
-                    </div>
-                </div>
+                        {/* Nombre del producto */}
+                        <h3 className="text-lg font-medium text-[#1C1C1C] mb-3 leading-tight">
+                            {name}
+                        </h3>
 
+                        {/* Grid info: Marca, IVA y Precio */}
+                        <div className="grid grid-cols-2 gap-4 mb-3">
+                            {/* Marca */}
+                            <div className="text-lg font-medium text-[#1C1C1C]">
+                                {brand?.name || "—"}
+                            </div>
 
-                {/* 17%: Precio */}
-                <div className="col-span-4 md:col-span-2">
-                    <div className="text-[11px] uppercase tracking-wide text-[#7a7a7a]">Precio</div>
-                    <div className="mt-1">
-                        {isLoggedIn ? (
-                            <div>
-                                {isUSD ? (
-                                    <div>
-                                        <div className="font-medium text-[#1C1C1C]">
-                                            {formatUSD(priceBase)}
+                            {/* IVA */}
+                            <div className="text-lg font-medium text-[#1C1C1C]">
+                                {Number.isFinite(ivaPct) && ivaPct > 0 ? `${ivaPct.toFixed(1)}%` : "—"}
+                            </div>
+                        </div>
+
+                        {/* Precio */}
+                        <div className="text-xl font-semibold text-[#1C1C1C]">
+                            {isLoggedIn ? (
+                                <>
+                                    {isUSD ? (
+                                        <div>
+                                            <div>{formatUSD(priceBase)}</div>
+                                            {priceInARS && (
+                                                <div className="text-sm text-[#646464] font-normal">
+                                                    {formatARS(priceInARS)}
+                                                </div>
+                                            )}
                                         </div>
-                                        {priceInARS && (
-                                            <div className="text-xs text-[#646464] mt-0.5">
-                                                Precio en pesos: {formatARS(priceInARS)}
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div className="font-medium text-[#1C1C1C]">
-                                        {formatMoney(priceBase, currency)}
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <span className="text-[#384A93] text-sm">Consultar</span>
-                        )}
+                                    ) : (
+                                        formatMoney(priceBase, currency)
+                                    )}
+                                </>
+                            ) : (
+                                <span className="text-[#384A93]">Consultar</span>
+                            )}
+                        </div>
                     </div>
                 </div>
 
-                {/* 17%: IVA */}
-                <div className="col-span-4 md:col-span-2">
-                    <div className="text-[11px] uppercase tracking-wide text-[#7a7a7a]">IVA</div>
-                    <div className="mt-1 text-[#1C1C1C]">
-                        {Number.isFinite(ivaPct) && ivaPct > 0 ? `${ivaPct.toFixed(1)}%` : "—"}
+                {/* Bloque secundario móvil */}
+                {qty >= 1 && (
+                    <div className="mt-4 pt-4 border-t border-[#E5E5E5] flex flex-col gap-3">
+                        <div className="text-sm text-[#646464]">
+                            {isLoggedIn ? (
+                                <>
+                                    Valor total:{" "}
+                                    <span className="font-medium text-[#1C1C1C]">{formatMoney(total, currency)}</span>{" "}
+                                    <span className="text-xs">+ IVA</span>
+                                </>
+                            ) : (
+                                <>
+                                    Cantidad: <span className="font-medium text-[#1C1C1C]">{qty}</span>{" "}
+                                    <span className="text-xs">• Precio a consultar</span>
+                                </>
+                            )}
+                        </div>
+                        <button
+                            type="button"
+                            onClick={add}
+                            className="inline-flex items-center justify-center rounded-md bg-[#384A93] px-4 py-2 text-sm font-medium text-white hover:bg-[#2e3d7a] transition-colors"
+                        >
+                            {isLoggedIn ? 'Añadir' : 'Cotizar'}
+                        </button>
                     </div>
-                </div>
+                )}
 
-                {/* 17%: Controles */}
-                <div className="col-span-4 md:col-span-2 flex flex-col items-end">
-                    <div className="self-end text-[11px] uppercase tracking-wide text-[#7a7a7a]">
-                        {isLoggedIn ? 'Agregar al carrito' : 'Cotizar'}
-                    </div>
-                    <div className="mt-1 inline-flex items-center rounded-full border border-[#e1e8f4] bg-[#e1e8f4] overflow-hidden">
-                        <button type="button" onClick={dec} className="h-7 w-7 text-sm text-[#384A93] hover:bg-[#d1d8e4] transition-colors" aria-label="Restar">–</button>
-                        <div className="h-7 min-w-[2.25rem] px-1 text-center text-sm leading-7 text-[#384A93] font-medium">{qty}</div>
-                        <button type="button" onClick={inc} className="h-7 w-7 text-sm text-[#384A93] hover:bg-[#d1d8e4] transition-colors" aria-label="Sumar">+</button>
-                    </div>
-                    {inCartQty > 0 && (
-                        <div className="mt-1 text-[11px] text-[#7a7a7a]">En carrito: {inCartQty} u.</div>
-                    )}
-                </div>
+                {inCartQty > 0 && (
+                    <div className="mt-2 text-xs text-[#7a7a7a]">En carrito: {inCartQty} u.</div>
+                )}
             </div>
 
-            {/* Bloque secundario */}
-            {qty >= 1 && (
-                <div className="mt-3 rounded-md border border-[#E5E5E5] bg-[#FAFAFA] px-3 py-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                    <div className="text-sm text-[#646464]">
-                        {isLoggedIn ? (
-                            <>
-                                Valor total:{" "}
-                                <span className="font-medium text-[#1C1C1C]">{formatMoney(total, currency)}</span>{" "}
-                                <span className="text-xs">+ IVA</span>
-                            </>
-                        ) : (
-                            <>
-                                Cantidad: <span className="font-medium text-[#1C1C1C]">{qty}</span>{" "}
-                                <span className="text-xs">• Precio a consultar</span>
-                            </>
+            {/* Layout desktop - Diseño original en columnas */}
+            <div className="hidden md:block px-4 py-3 sm:px-5 sm:py-4">
+                <div className="grid grid-cols-12 items-center gap-4">
+                    {/* 33%: imagen + datos */}
+                    <div className="col-span-4 overflow-hidden">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <div className="h-14 w-14 flex-none overflow-hidden rounded-md ring-1 ring-gray-200 bg-gray-50">
+                                <img
+                                    src={imgSrc}
+                                    alt={normalizedSku || "Producto"}
+                                    width={56}
+                                    height={56}
+                                    loading="lazy"
+                                    className="h-14 w-14 object-cover"
+                                    onError={(e) => {
+                                        const el = e.currentTarget as HTMLImageElement;
+                                        el.onerror = null;
+                                        el.src = "/product-images/placeholder.png";
+                                    }}
+                                />
+                            </div>
+                            <div className="min-w-0">
+                                <div className="text-sm text-[#646464] leading-none truncate">
+                                    {normalizedSku ? (
+                                        <span className="font-medium text-[#1C1C1C]">{normalizedSku}</span>
+                                    ) : (
+                                        <span className="text-[#9a9a9a]">Sin SKU</span>
+                                    )}
+                                </div>
+                                <div className="mt-1 truncate text-[15px] text-[#1C1C1C]">{name}</div>
+                                {description && (
+                                    <div className="mt-0.5 text-xs text-[#7a7a7a] truncate">
+                                        {description}
+                                    </div>
+                                )}
+                                {!!unit && <div className="mt-0.5 text-xs text-[#7a7a7a]">U.M.: {unit}</div>}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 17%: Marca */}
+                    <div className="col-span-2">
+                        <div className="text-[11px] uppercase tracking-wide text-[#7a7a7a]">Marca</div>
+                        <div className="mt-1 text-[#1C1C1C]">
+                            {brand?.name || "—"}
+                        </div>
+                    </div>
+
+                    {/* 17%: Precio */}
+                    <div className="col-span-2">
+                        <div className="text-[11px] uppercase tracking-wide text-[#7a7a7a]">Precio</div>
+                        <div className="mt-1">
+                            {isLoggedIn ? (
+                                <div>
+                                    {isUSD ? (
+                                        <div>
+                                            <div className="font-medium text-[#1C1C1C]">
+                                                {formatUSD(priceBase)}
+                                            </div>
+                                            {priceInARS && (
+                                                <div className="text-xs text-[#646464] mt-0.5">
+                                                    Precio en pesos: {formatARS(priceInARS)}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="font-medium text-[#1C1C1C]">
+                                            {formatMoney(priceBase, currency)}
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <span className="text-[#384A93] text-sm">Consultar</span>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* 17%: IVA */}
+                    <div className="col-span-2">
+                        <div className="text-[11px] uppercase tracking-wide text-[#7a7a7a]">IVA</div>
+                        <div className="mt-1 text-[#1C1C1C]">
+                            {Number.isFinite(ivaPct) && ivaPct > 0 ? `${ivaPct.toFixed(1)}%` : "—"}
+                        </div>
+                    </div>
+
+                    {/* 17%: Controles */}
+                    <div className="col-span-2 flex flex-col items-end">
+                        <div className="self-end text-[11px] uppercase tracking-wide text-[#7a7a7a]">
+                            {isLoggedIn ? 'Agregar al carrito' : 'Cotizar'}
+                        </div>
+                        <div className="mt-1 inline-flex items-center rounded-full border border-[#e1e8f4] bg-[#e1e8f4] overflow-hidden">
+                            <button type="button" onClick={dec} className="h-7 w-7 text-sm text-[#384A93] hover:bg-[#d1d8e4] transition-colors" aria-label="Restar">–</button>
+                            <div className="h-7 min-w-[2.25rem] px-1 text-center text-sm leading-7 text-[#384A93] font-medium">{qty}</div>
+                            <button type="button" onClick={inc} className="h-7 w-7 text-sm text-[#384A93] hover:bg-[#d1d8e4] transition-colors" aria-label="Sumar">+</button>
+                        </div>
+                        {inCartQty > 0 && (
+                            <div className="mt-1 text-[11px] text-[#7a7a7a]">En carrito: {inCartQty} u.</div>
                         )}
                     </div>
-                    <button
-                        type="button"
-                        onClick={add}
-                        className="inline-flex items-center justify-center rounded-md bg-[#384A93] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#2e3d7a]"
-                    >
-                        {isLoggedIn ? 'Añadir al carrito' : 'Agregar para cotizar'}
-                    </button>
                 </div>
-            )}
+
+                {/* Bloque secundario desktop */}
+                {qty >= 1 && (
+                    <div className="mt-3 rounded-md border border-[#E5E5E5] bg-[#FAFAFA] px-3 py-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div className="text-sm text-[#646464]">
+                            {isLoggedIn ? (
+                                <>
+                                    Valor total:{" "}
+                                    <span className="font-medium text-[#1C1C1C]">{formatMoney(total, currency)}</span>{" "}
+                                    <span className="text-xs">+ IVA</span>
+                                </>
+                            ) : (
+                                <>
+                                    Cantidad: <span className="font-medium text-[#1C1C1C]">{qty}</span>{" "}
+                                    <span className="text-xs">• Precio a consultar</span>
+                                </>
+                            )}
+                        </div>
+                        <button
+                            type="button"
+                            onClick={add}
+                            className="inline-flex items-center justify-center rounded-md bg-[#384A93] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#2e3d7a]"
+                        >
+                            {isLoggedIn ? 'Añadir al carrito' : 'Agregar para cotizar'}
+                        </button>
+                    </div>
+                )}
+            </div>
         </li>
     );
 }

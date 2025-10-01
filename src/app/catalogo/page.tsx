@@ -73,6 +73,7 @@ export default async function CatalogoPage({ searchParams }: Props) {
             id: true,
             sku: true,
             name: true,
+            description: true,
             unit: true,
             priceBase: true,  // Prisma.Decimal
             currency: true,
@@ -91,6 +92,7 @@ export default async function CatalogoPage({ searchParams }: Props) {
         id: p.id,
         sku: p.sku,
         name: p.name,
+        description: p.description,
         unit: p.unit,
         priceBase: p.priceBase ? Number(p.priceBase) : 0,
         currency: p.currency ?? "ARS",
