@@ -149,8 +149,72 @@ export default function BrandsTable({ brands }: BrandsTableProps) {
                 </div>
             </div>
 
-            {/* Tabla */}
-            <div className="overflow-x-auto">
+            {/* Vista móvil - Tarjetas */}
+            <div className="md:hidden space-y-3">
+                {filteredAndSortedBrands.map((brand) => (
+                    <div key={brand.id} className="bg-white border border-[#E5E5E5] rounded-lg p-4">
+                        {/* Header: Código + Estado */}
+                        <div className="flex justify-between items-center mb-4">
+                            <div className="text-sm font-medium text-[#646464]">
+                                {brand.code || '—'}
+                            </div>
+                            <BrandStatusSelect
+                                brandId={brand.id}
+                                brandName={brand.name}
+                                currentStatus={brand.isActive}
+                                onStatusChange={handleStatusChange}
+                            />
+                        </div>
+
+                        {/* Nombre de la marca + Slug */}
+                        <div className="mb-4">
+                            <div className="text-lg font-medium text-[#1C1C1C] mb-1">
+                                {brand.name}
+                            </div>
+                            <div className="text-sm text-[#646464]">
+                                /{brand.slug}
+                            </div>
+                        </div>
+
+                        {/* Footer: Productos + Fecha creación + Acciones */}
+                        <div className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-3">
+                                <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                                    brand.productCount === 0
+                                        ? 'bg-red-100 text-red-800'
+                                        : brand.productCount < 10
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : 'bg-green-100 text-green-800'
+                                }`}>
+                                    {brand.productCount} productos
+                                </span>
+                                <span className="text-[#646464]">
+                                    {new Date(brand.createdAt).toLocaleDateString('es-AR')}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {brand.productCount > 0 && (
+                                    <Link
+                                        href={`/mi-cuenta/productos?marca=${brand.slug}`}
+                                        className="text-xs text-[#384A93] hover:underline"
+                                    >
+                                        Ver productos
+                                    </Link>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                ))}
+
+                {filteredAndSortedBrands.length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                        No se encontraron marcas que coincidan con la búsqueda.
+                    </div>
+                )}
+            </div>
+
+            {/* Vista desktop - Tabla */}
+            <div className="hidden md:block overflow-x-auto">
                 <table className="w-full border-collapse">
                     <thead>
                         <tr className="border-b border-gray-200">
