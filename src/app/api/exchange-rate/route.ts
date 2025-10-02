@@ -10,7 +10,7 @@ interface ExchangeRate {
 export async function GET() {
     try {
         // Obtener la página del BNA
-        const response = await fetch('https://www.bna.com.ar/Cotizador/MonedasHistorico', {
+        const response = await fetch('https://www.bna.com.ar/Personas', {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
             },
@@ -23,24 +23,23 @@ export async function GET() {
         }
 
         const html = await response.text();
-        
-        // Buscar la tabla con las cotizaciones
-        // Patrón para encontrar la fila del Dólar U.S.A.
-        const dollarPattern = /Dolar U\.S\.A\.\s*<\/td>\s*<td[^>]*>\s*([\d,]+\.?\d*)\s*<\/td>\s*<td[^>]*>\s*([\d,]+\.?\d*)\s*<\/td>/i;
+
+        // Buscar el tr que contiene "Dolar U.S.A" y extraer los valores de compra y venta
+        const dollarPattern = /<tr[^>]*>.*?Dolar U\.S\.A.*?<td[^>]*>\s*([\d,]+\.?\d*)\s*<\/td>\s*<td[^>]*>\s*([\d,]+\.?\d*)\s*<\/td>.*?<\/tr>/is;
         const match = html.match(dollarPattern);
 
         if (!match) {
             // Patrón alternativo más flexible
-            const alternativePattern = /(?:Dolar|Dólar).*?U\.?S\.?A\.?.*?<\/td>.*?<td[^>]*>\s*([\d,]+\.?\d*)\s*<\/td>\s*<td[^>]*>\s*([\d,]+\.?\d*)\s*<\/td>/is;
+            const alternativePattern = /<tr[^>]*>.*?(?:Dolar|Dólar).*?U\.?S\.?A\.?.*?<td[^>]*>\s*([\d,]+\.?\d*)\s*<\/td>\s*<td[^>]*>\s*([\d,]+\.?\d*)\s*<\/td>.*?<\/tr>/is;
             const altMatch = html.match(alternativePattern);
-            
+
             if (!altMatch) {
                 console.error('No se pudo encontrar la cotización del dólar en el HTML');
-                return NextResponse.json({ 
-                    error: "No se pudo obtener la cotización" 
+                return NextResponse.json({
+                    error: "No se pudo obtener la cotización"
                 }, { status: 500 });
             }
-            
+
             const buyRate = parseFloat(altMatch[1].replace(',', '.'));
             const sellRate = parseFloat(altMatch[2].replace(',', '.'));
 
@@ -69,7 +68,7 @@ export async function GET() {
 
     } catch (error) {
         console.error('Error obteniendo cotización del BNA:', error);
-        
+
         // Devolver valores de respaldo en caso de error
         const fallbackRate: ExchangeRate = {
             currency: 'USD',

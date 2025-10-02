@@ -177,8 +177,74 @@ export default function ProductsTable({ products, onImportSuccess, allBrands, se
                 </button>
             </div>
 
-            {/* Tabla */}
-            <div className="bg-white border border-[#E5E5E5] rounded-lg overflow-hidden">
+            {/* Vista móvil - Tarjetas */}
+            <div className="md:hidden space-y-3">
+                {filteredProducts.map((product) => (
+                    <div key={product.id} className="bg-white border border-[#E5E5E5] rounded-lg p-4">
+                        {/* Header: SKU + Estado + Eliminar */}
+                        <div className="flex justify-between items-center mb-4">
+                            <div className="text-sm font-medium text-[#646464]">
+                                {product.sku || '—'}
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <ProductStatusSelect
+                                    productId={product.id}
+                                    productName={product.name}
+                                    currentStatus={product.isActive}
+                                    onStatusChange={handleStatusChange}
+                                />
+                                <ProductDeleteButton
+                                    productId={product.id}
+                                    productName={product.name}
+                                    onDelete={handleProductDelete}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Nombre del producto + Marca */}
+                        <div className="mb-4">
+                            <div className="text-lg font-medium text-[#1C1C1C] mb-1">
+                                {product.name}
+                            </div>
+                            {product.brand && (
+                                <div className="text-sm text-[#646464]">
+                                    {product.brand.name}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer: Precio + Moneda + IVA + Stock */}
+                        <div className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-3">
+                                <span className="font-semibold text-[#1C1C1C]">
+                                    {product.currency === 'USD' ? 'U$S' : '$'}{product.priceBase.toLocaleString('es-AR', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2
+                                    })}
+                                </span>
+                                <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                                    product.currency === 'USD'
+                                        ? 'bg-green-100 text-green-800'
+                                        : 'bg-blue-100 text-blue-800'
+                                }`}>
+                                    {product.currency === 'USD' ? 'USD' : 'ARS'}
+                                </span>
+                                {product.taxRate && (
+                                    <span className="text-[#646464]">
+                                        IVA: {product.taxRate}%
+                                    </span>
+                                )}
+                            </div>
+                            <div className="text-[#646464]">
+                                Stock: {product.stockQty}
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Vista desktop - Tabla */}
+            <div className="hidden md:block bg-white border border-[#E5E5E5] rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead className="bg-[#F8F9FA] border-b border-[#E5E5E5]">
@@ -209,15 +275,15 @@ export default function ProductsTable({ products, onImportSuccess, allBrands, se
                                         {product.brand?.name || '-'}
                                     </td>
                                     <td className="px-4 py-3 text-right font-mono">
-                                        {product.currency === 'USD' ? 'U$S' : '$'}{product.priceBase.toLocaleString('es-AR', { 
+                                        {product.currency === 'USD' ? 'U$S' : '$'}{product.priceBase.toLocaleString('es-AR', {
                                             minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2 
+                                            maximumFractionDigits: 2
                                         })}
                                     </td>
                                     <td className="px-4 py-3 text-center">
                                         <span className={`inline-flex px-2 py-1 text-xs rounded-full font-medium ${
-                                            product.currency === 'USD' 
-                                                ? 'bg-green-100 text-green-800' 
+                                            product.currency === 'USD'
+                                                ? 'bg-green-100 text-green-800'
                                                 : 'bg-blue-100 text-blue-800'
                                         }`}>
                                             {product.currency === 'USD' ? 'USD' : 'ARS'}
@@ -255,24 +321,26 @@ export default function ProductsTable({ products, onImportSuccess, allBrands, se
                     </table>
                 </div>
 
-                {filteredProducts.length === 0 && (searchTerm || selectedBrand) && (
-                    <div className="text-center py-12 text-gray-500">
-                        No se encontraron productos con los filtros aplicados
-                        {searchTerm && (
-                            <div className="text-xs mt-1">Búsqueda: "{searchTerm}"</div>
-                        )}
-                        {selectedBrand && (
-                            <div className="text-xs mt-1">Marca: {selectedBrand}</div>
-                        )}
-                    </div>
-                )}
-
-                {products.length === 0 && (
-                    <div className="text-center py-12 text-gray-500">
-                        No hay productos registrados
-                    </div>
-                )}
             </div>
+
+            {/* Mensajes de estado para ambas vistas */}
+            {filteredProducts.length === 0 && (searchTerm || selectedBrand) && (
+                <div className="text-center py-12 text-gray-500 bg-white border border-[#E5E5E5] rounded-lg">
+                    No se encontraron productos con los filtros aplicados
+                    {searchTerm && (
+                        <div className="text-xs mt-1">Búsqueda: "{searchTerm}"</div>
+                    )}
+                    {selectedBrand && (
+                        <div className="text-xs mt-1">Marca: {selectedBrand}</div>
+                    )}
+                </div>
+            )}
+
+            {products.length === 0 && (
+                <div className="text-center py-12 text-gray-500 bg-white border border-[#E5E5E5] rounded-lg">
+                    No hay productos registrados
+                </div>
+            )}
 
             <ExcelImporter
                 isOpen={showImporter}

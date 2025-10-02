@@ -79,6 +79,16 @@ export default function Header({ className }: HeaderProps) {
                             <ExchangeRateDisplay />
                         </div>
 
+                        {/* Mi cuenta / Login - Solo desktop */}
+                        <div className="hidden md:block">
+                            <Link
+                                href={user ? "/mi-cuenta" : "/login"}
+                                className={navLink}
+                            >
+                                {user ? "Mi cuenta" : "Ingresar"}
+                            </Link>
+                        </div>
+
                         {/* Botón carrito */}
                         <CartToggleButton />
                     </div>
