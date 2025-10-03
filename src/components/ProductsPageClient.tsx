@@ -13,6 +13,7 @@ type Product = {
     stockQty: number;
     taxRate: number | null;
     isActive: boolean;
+    isFeatured: boolean;
     brand: {
         name: string;
     } | null;
@@ -23,7 +24,7 @@ type ProductsPageClientProps = {
     currentPage: number;
     totalPages: number;
     totalCount: number;
-    allBrands: string[];
+    allBrands: { name: string; slug: string }[];
     selectedBrandSlug?: string;
 };
 
@@ -89,6 +90,7 @@ export default function ProductsPageClient({
                 onImportSuccess={handleImportSuccess}
                 allBrands={allBrands}
                 selectedBrandSlug={selectedBrandSlug}
+                totalCount={totalCount}
             />
 
             {/* Controles de paginación */}

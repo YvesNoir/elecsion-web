@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { OrderType, OrderStatus, Prisma } from "@prisma/client";
 import { getSession } from "@/lib/session";
+import { sendEmail, emailTemplates } from "@/lib/email";
 
 type Body = {
     items: Array<{ productId: string; qty: number }>;
@@ -121,8 +122,73 @@ export async function POST(req: Request) {
                 total,
                 items: { create: itemsCreate },
             },
-            select: { id: true },
+            select: {
+                id: true,
+                clientUser: {
+                    select: {
+                        email: true,
+                        firstName: true,
+                        lastName: true
+                    }
+                }
+            },
         });
+
+        // Enviar notificaciones por email
+        try {
+            const clientName = `${order.clientUser?.firstName || ''} ${order.clientUser?.lastName || ''}`.trim() || 'Cliente';
+            const clientEmail = order.clientUser?.email;
+            const orderNumber = order.id;
+
+            // 1. Email al cliente confirmando que el pedido está en revisión
+            if (clientEmail) {
+                const clientTemplate = emailTemplates.orderCreatedForClient(orderNumber, clientName);
+                await sendEmail({
+                    to: clientEmail,
+                    subject: clientTemplate.subject,
+                    html: clientTemplate.html
+                });
+            }
+
+            // 2. Email a vendedores y administradores
+            const recipients = [];
+
+            // Obtener el vendedor asignado
+            if (user.assignedSellerId) {
+                const seller = await prisma.user.findUnique({
+                    where: { id: user.assignedSellerId },
+                    select: { email: true }
+                });
+                if (seller?.email) {
+                    recipients.push(seller.email);
+                }
+            }
+
+            // Obtener todos los administradores
+            const admins = await prisma.user.findMany({
+                where: { role: 'ADMIN' },
+                select: { email: true }
+            });
+
+            admins.forEach(admin => {
+                if (admin.email) {
+                    recipients.push(admin.email);
+                }
+            });
+
+            // Enviar notificación a vendedores y administradores
+            if (recipients.length > 0 && clientEmail) {
+                const sellerTemplate = emailTemplates.orderCreatedForSellers(orderNumber, clientName, clientEmail);
+                await sendEmail({
+                    to: recipients,
+                    subject: sellerTemplate.subject,
+                    html: sellerTemplate.html
+                });
+            }
+        } catch (emailError) {
+            console.error('Error sending email notifications:', emailError);
+            // No interrumpimos el flujo por errores de email
+        }
 
         return NextResponse.json({ ok: true, orderId: order.id, type: "ORDER" });
     } catch (e) {

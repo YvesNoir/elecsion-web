@@ -38,6 +38,7 @@ type CatalogClientProps = {
     totalPages: number;
     productsPerPage: number;
     isLoggedIn: boolean;
+    isFeaturedPage?: boolean;
 };
 
 export default function CatalogClient({ 
@@ -50,7 +51,8 @@ export default function CatalogClient({
     currentPage,
     totalPages,
     productsPerPage,
-    isLoggedIn
+    isLoggedIn,
+    isFeaturedPage = false
 }: CatalogClientProps) {
     const router = useRouter();
     const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
@@ -67,9 +69,10 @@ export default function CatalogClient({
         if (searchInput.trim()) {
             params.set('search', searchInput.trim());
         }
-        
+
         const queryString = params.toString();
-        const url = queryString ? `/catalogo?${queryString}` : '/catalogo';
+        const basePath = isFeaturedPage ? '/catalogo/destacados' : '/catalogo';
+        const url = queryString ? `${basePath}?${queryString}` : basePath;
         router.push(url);
     };
 
@@ -82,7 +85,8 @@ export default function CatalogClient({
         }
         
         const queryString = params.toString();
-        const url = queryString ? `/catalogo?${queryString}` : '/catalogo';
+        const basePath = isFeaturedPage ? '/catalogo/destacados' : '/catalogo';
+        const url = queryString ? `${basePath}?${queryString}` : basePath;
         router.push(url);
     };
 
@@ -101,7 +105,8 @@ export default function CatalogClient({
         }
         
         const queryString = params.toString();
-        return queryString ? `/catalogo?${queryString}` : '/catalogo';
+        const basePath = isFeaturedPage ? '/catalogo/destacados' : '/catalogo';
+        return queryString ? `${basePath}?${queryString}` : basePath;
     };
 
     return (

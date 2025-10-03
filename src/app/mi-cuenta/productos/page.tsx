@@ -51,6 +51,7 @@ export default async function ProductosPage({
                 stockQty: true,
                 taxRate: true,
                 isActive: true,
+                isFeatured: true,
                 brand: {
                     select: {
                         name: true,
@@ -66,8 +67,12 @@ export default async function ProductosPage({
         }),
         prisma.product.count({ where: whereCondition }),
         prisma.brand.findMany({
+            where: {
+                isActive: true
+            },
             select: {
-                name: true
+                name: true,
+                slug: true
             },
             orderBy: {
                 name: 'asc'
@@ -121,7 +126,7 @@ export default async function ProductosPage({
                                 currentPage={page}
                                 totalPages={totalPages}
                                 totalCount={totalCount}
-                                allBrands={allBrands.map(brand => brand.name)}
+                                allBrands={allBrands}
                                 selectedBrandSlug={brandFilter}
                             />
                         </div>

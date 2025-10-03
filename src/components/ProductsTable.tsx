@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import ExcelImporter from './ExcelImporter';
 import ProductStatusSelect from './ProductStatusSelect';
 import ProductDeleteButton from './ProductDeleteButton';
@@ -15,6 +16,7 @@ type Product = {
     stockQty: number;
     taxRate: number | null;
     isActive: boolean;
+    isFeatured: boolean;
     brand: {
         name: string;
     } | null;
@@ -23,11 +25,13 @@ type Product = {
 type ProductsTableProps = {
     products: Product[];
     onImportSuccess?: () => void;
-    allBrands?: string[];
+    allBrands?: { name: string; slug: string }[];
     selectedBrandSlug?: string;
+    totalCount?: number;
 };
 
-export default function ProductsTable({ products, onImportSuccess, allBrands, selectedBrandSlug }: ProductsTableProps) {
+export default function ProductsTable({ products, onImportSuccess, allBrands, selectedBrandSlug, totalCount }: ProductsTableProps) {
+    const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedBrand, setSelectedBrand] = useState('');
     const [showImporter, setShowImporter] = useState(false);
@@ -37,17 +41,6 @@ export default function ProductsTable({ products, onImportSuccess, allBrands, se
     useEffect(() => {
         setLocalProducts(products);
     }, [products]);
-
-    // Establecer marca seleccionada al cargar basándose en el slug
-    useEffect(() => {
-        if (selectedBrandSlug && products.length > 0) {
-            // Encontrar un producto que tenga la marca con el slug proporcionado
-            const productWithBrand = products.find(p => p.brand?.name);
-            if (productWithBrand?.brand?.name) {
-                setSelectedBrand(productWithBrand.brand.name);
-            }
-        }
-    }, [selectedBrandSlug, products]);
 
     // Función para manejar el cambio de estado del producto
     const handleStatusChange = (productId: string, newStatus: boolean) => {
@@ -69,13 +62,41 @@ export default function ProductsTable({ products, onImportSuccess, allBrands, se
 
     // Función para manejar el cambio de stock del producto
     const handleStockChange = (productId: string, newStock: number) => {
-        setLocalProducts(prevProducts => 
-            prevProducts.map(product => 
-                product.id === productId 
+        setLocalProducts(prevProducts =>
+            prevProducts.map(product =>
+                product.id === productId
                     ? { ...product, stockQty: newStock }
                     : product
             )
         );
+    };
+
+    // Función para manejar el cambio de estado destacado del producto
+    const handleFeaturedChange = async (productId: string, isFeatured: boolean) => {
+        try {
+            const response = await fetch(`/api/productos/${productId}/featured`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ isFeatured }),
+            });
+
+            if (response.ok) {
+                setLocalProducts(prevProducts =>
+                    prevProducts.map(product =>
+                        product.id === productId
+                            ? { ...product, isFeatured }
+                            : product
+                    )
+                );
+            } else {
+                alert('Error al actualizar el estado destacado del producto');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al actualizar el estado destacado del producto');
+        }
     };
 
     // Usar todas las marcas pasadas como props, o extraer de productos como fallback
@@ -88,11 +109,57 @@ export default function ProductsTable({ products, onImportSuccess, allBrands, se
             .map(product => product.brand?.name)
             .filter((brand): brand is string => Boolean(brand))
             .filter((brand, index, array) => array.indexOf(brand) === index)
-            .sort();
+            .sort()
+            .map(name => ({ name, slug: name.toLowerCase().replace(/\s+/g, '-') }));
         return brands;
     }, [allBrands, products]);
 
+    // Función para manejar el cambio de marca
+    const handleBrandChange = (brandName: string) => {
+        if (!brandName) {
+            // Si se selecciona "Todas las marcas", ir a la página sin filtro
+            router.push('/mi-cuenta/productos');
+            return;
+        }
+
+        // Encontrar el slug de la marca seleccionada
+        const selectedBrandObj = uniqueBrands.find(brand => brand.name === brandName);
+        if (selectedBrandObj) {
+            router.push(`/mi-cuenta/productos?marca=${selectedBrandObj.slug}`);
+        }
+    };
+
+    // Establecer marca seleccionada al cargar basándose en el slug
+    useEffect(() => {
+        if (selectedBrandSlug && uniqueBrands.length > 0) {
+            // Encontrar la marca que corresponde al slug
+            const matchingBrand = uniqueBrands.find(brand =>
+                brand.slug === selectedBrandSlug
+            );
+            if (matchingBrand) {
+                setSelectedBrand(matchingBrand.name);
+            }
+        } else if (!selectedBrandSlug) {
+            setSelectedBrand('');
+        }
+    }, [selectedBrandSlug, uniqueBrands]);
+
     const filteredProducts = useMemo(() => {
+        // Si hay selectedBrandSlug, los productos ya vienen filtrados del servidor
+        // Solo aplicamos filtro de búsqueda por texto
+        if (selectedBrandSlug) {
+            return localProducts.filter(product => {
+                if (!searchTerm.trim()) return true;
+
+                const term = searchTerm.toLowerCase().trim();
+                const sku = (product.sku || '').toLowerCase();
+                const name = product.name.toLowerCase();
+                const brand = (product.brand?.name || '').toLowerCase();
+                return sku.includes(term) || name.includes(term) || brand.includes(term);
+            });
+        }
+
+        // Si no hay selectedBrandSlug, aplicamos ambos filtros
         return localProducts.filter(product => {
             // Filtro por texto
             const matchesSearch = !searchTerm.trim() || (() => {
@@ -108,7 +175,7 @@ export default function ProductsTable({ products, onImportSuccess, allBrands, se
 
             return matchesSearch && matchesBrand;
         });
-    }, [localProducts, searchTerm, selectedBrand]);
+    }, [localProducts, searchTerm, selectedBrand, selectedBrandSlug]);
 
     const handleImport = async (importData: any[]) => {
         try {
@@ -152,19 +219,19 @@ export default function ProductsTable({ products, onImportSuccess, allBrands, se
                 <div className="min-w-[200px]">
                     <select
                         value={selectedBrand}
-                        onChange={(e) => setSelectedBrand(e.target.value)}
+                        onChange={(e) => handleBrandChange(e.target.value)}
                         className="w-full px-4 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#384A93] focus:border-transparent text-sm bg-white"
                     >
                         <option value="">Todas las marcas</option>
                         {uniqueBrands.map((brand) => (
-                            <option key={brand} value={brand}>
-                                {brand}
+                            <option key={brand.slug} value={brand.name}>
+                                {brand.name}
                             </option>
                         ))}
                     </select>
                 </div>
                 <div className="text-sm text-[#646464] whitespace-nowrap">
-                    {filteredProducts.length} de {products.length} productos
+                    {filteredProducts.length} de {totalCount || products.length} productos
                 </div>
                 <button
                     onClick={() => setShowImporter(true)}
@@ -181,10 +248,18 @@ export default function ProductsTable({ products, onImportSuccess, allBrands, se
             <div className="md:hidden space-y-3">
                 {filteredProducts.map((product) => (
                     <div key={product.id} className="bg-white border border-[#E5E5E5] rounded-lg p-4">
-                        {/* Header: SKU + Estado + Eliminar */}
+                        {/* Header: Destacado + SKU + Estado + Eliminar */}
                         <div className="flex justify-between items-center mb-4">
-                            <div className="text-sm font-medium text-[#646464]">
-                                {product.sku || '—'}
+                            <div className="flex items-center gap-3">
+                                <input
+                                    type="checkbox"
+                                    checked={product.isFeatured}
+                                    onChange={(e) => handleFeaturedChange(product.id, e.target.checked)}
+                                    className="w-4 h-4 text-[#384A93] bg-gray-100 border-gray-300 rounded focus:ring-[#384A93] focus:ring-2"
+                                />
+                                <div className="text-sm font-medium text-[#646464]">
+                                    {product.sku || '—'}
+                                </div>
                             </div>
                             <div className="flex items-center gap-3">
                                 <ProductStatusSelect
@@ -203,7 +278,7 @@ export default function ProductsTable({ products, onImportSuccess, allBrands, se
 
                         {/* Nombre del producto + Marca */}
                         <div className="mb-4">
-                            <div className="text-lg font-medium text-[#1C1C1C] mb-1">
+                            <div className="text-base font-medium text-[#1C1C1C] mb-1">
                                 {product.name}
                             </div>
                             {product.brand && (
@@ -249,6 +324,7 @@ export default function ProductsTable({ products, onImportSuccess, allBrands, se
                     <table className="w-full">
                         <thead className="bg-[#F8F9FA] border-b border-[#E5E5E5]">
                             <tr>
+                                <th className="w-16"></th>
                                 <th className="text-left px-4 py-3 font-medium text-[#1C1C1C]">SKU</th>
                                 <th className="text-left px-4 py-3 font-medium text-[#1C1C1C]">Producto</th>
                                 <th className="text-left px-4 py-3 font-medium text-[#1C1C1C]">Marca</th>
@@ -263,11 +339,19 @@ export default function ProductsTable({ products, onImportSuccess, allBrands, se
                         <tbody>
                             {filteredProducts.map((product) => (
                                 <tr key={product.id} className="border-b border-[#E5E5E5] hover:bg-[#F8F9FA]">
+                                    <td className="px-4 py-3 text-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={product.isFeatured}
+                                            onChange={(e) => handleFeaturedChange(product.id, e.target.checked)}
+                                            className="w-4 h-4 text-[#384A93] bg-gray-100 border-gray-300 rounded focus:ring-[#384A93] focus:ring-2"
+                                        />
+                                    </td>
                                     <td className="px-4 py-3 font-mono text-sm">
                                         {product.sku || '-'}
                                     </td>
                                     <td className="px-4 py-3">
-                                        <div className="font-medium text-[#1C1C1C]">
+                                        <div className="font-medium text-[#1C1C1C] text-sm">
                                             {product.name}
                                         </div>
                                     </td>
@@ -346,6 +430,7 @@ export default function ProductsTable({ products, onImportSuccess, allBrands, se
                 isOpen={showImporter}
                 onClose={() => setShowImporter(false)}
                 onImport={handleImport}
+                onImportSuccess={onImportSuccess}
             />
         </div>
     );

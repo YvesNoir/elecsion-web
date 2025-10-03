@@ -16,36 +16,36 @@ type Slide = {
 const slides: Slide[] = [
     {
         id: 1,
-        title: "Calidad, variedad y listas para instalar",
-        description: "Descubre nuestra amplia gama de productos eléctricos de primera calidad",
-        buttonText: "Conocer",
-        buttonLink: "/catalogo",
+        title: "Visitá nuestra seleccion de productos destacados",
+        description: "Descubre nuestra amplia gama de productos destacados a precios de promoción",
+        buttonText: "Ver productos destacados",
+        buttonLink: "/catalogo/destacados",
         backgroundImage: "/hero-banner/hero-banner-1.jpg"
     },
     {
         id: 2,
-        title: "SICA - Innovación en instalaciones eléctricas",
-        description: "Productos confiables y duraderos para todos tus proyectos",
-        buttonText: "Ver productos",
-        buttonLink: "/catalogo?brand=sica",
-        backgroundImage: "/hero-banner/hero-banner-1.jpg",
+        title: "TREFILIGHT - Soluciones técnicas y estéticas en iluminación LED",
+        description: "Productos confiables con los más exigentes estandares de calidad",
+        buttonText: "Ver productos Trefilight",
+        buttonLink: "/catalogo?brand=trefilight",
+        backgroundImage: "/hero-banner/trefilight-banner.jpg",
         brandSlug: "sica"
     },
     {
         id: 3,
-        title: "Soluciones eléctricas profesionales",
-        description: "Todo lo que necesitas para instalaciones residenciales y comerciales",
-        buttonText: "Explorar",
+        title: "SICA - Líder en Soluciones de Seguridad y Equipamiento Eléctrico de Alta Calidad\n",
+        description: "Todo lo que necesitás en materiales eléctricos",
+        buttonText: "Ver productos Sica",
         buttonLink: "/catalogo",
-        backgroundImage: "/hero-banner/hero-banner-1.jpg"
+        backgroundImage: "/hero-banner/sica-banner.jpg"
     },
     {
         id: 4,
-        title: "Tecnología y calidad garantizada",
-        description: "Los mejores productos para electricistas profesionales",
-        buttonText: "Ver catálogo",
-        buttonLink: "/catalogo",
-        backgroundImage: "/hero-banner/hero-banner-1.jpg"
+        title: "Rottweiller - Herramientras industriales y artículos de ferretería",
+        description: "20 años de trayectoria y dedicación en herramientas de mano e industriales",
+        buttonText: "Ver productos Rottweiller",
+        buttonLink: "/catalogo?brand=tunisan",
+        backgroundImage: "/hero-banner/rottweiller-banner.jpg"
     }
 ];
 
@@ -95,7 +95,7 @@ export default function HeroSlider() {
 
                     {/* Content */}
                     <div className="relative z-10 flex items-center h-full px-14 md:px-30">
-                        <div className="w-full md:w-[50%] text-white">
+                        <div className="w-full md:w-[80%] text-white">
                             <h2 className="text-3xl md:text-5xl font-bold leading-tight mb-4">
                                 {slide.title}
                             </h2>

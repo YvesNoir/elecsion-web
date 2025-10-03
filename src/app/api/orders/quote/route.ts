@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/db";
+import { sendEmail, emailTemplates } from "@/lib/email";
 
 interface CartItem {
     id: string;
@@ -175,6 +176,62 @@ export async function POST(request: NextRequest) {
                 }
             }
         });
+
+        // Enviar notificaciones por email
+        try {
+            const clientName = quoteName || clientUser?.name || 'Cliente';
+            const clientEmail = quoteEmail || clientUser?.email;
+            const orderNumber = order.code || order.id;
+
+            // 1. Email al cliente confirmando que la cotización está en revisión
+            if (clientEmail) {
+                const clientTemplate = emailTemplates.quoteCreatedForClient(orderNumber, clientName);
+                await sendEmail({
+                    to: clientEmail,
+                    subject: clientTemplate.subject,
+                    html: clientTemplate.html
+                });
+            }
+
+            // 2. Email a vendedores y administradores
+            const recipients = [];
+
+            // Obtener el vendedor asignado
+            if (sellerId) {
+                const seller = await prisma.user.findUnique({
+                    where: { id: sellerId },
+                    select: { email: true }
+                });
+                if (seller?.email) {
+                    recipients.push(seller.email);
+                }
+            }
+
+            // Obtener todos los administradores
+            const admins = await prisma.user.findMany({
+                where: { role: 'ADMIN' },
+                select: { email: true }
+            });
+
+            admins.forEach(admin => {
+                if (admin.email) {
+                    recipients.push(admin.email);
+                }
+            });
+
+            // Enviar notificación a vendedores y administradores
+            if (recipients.length > 0 && clientEmail) {
+                const sellerTemplate = emailTemplates.quoteCreatedForSellers(orderNumber, clientName, clientEmail);
+                await sendEmail({
+                    to: recipients,
+                    subject: sellerTemplate.subject,
+                    html: sellerTemplate.html
+                });
+            }
+        } catch (emailError) {
+            console.error('Error sending quote email notifications:', emailError);
+            // No interrumpimos el flujo por errores de email
+        }
 
         // Respuesta exitosa
         return NextResponse.json({

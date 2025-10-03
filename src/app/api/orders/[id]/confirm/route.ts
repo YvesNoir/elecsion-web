@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/db";
+import { sendEmail, emailTemplates } from "@/lib/email";
 
 export async function PATCH(
     request: NextRequest,
@@ -58,19 +59,39 @@ export async function PATCH(
             include: {
                 clientUser: {
                     select: {
-                        name: true,
+                        firstName: true,
+                        lastName: true,
                         email: true
                     }
                 },
                 sellerUser: {
                     select: {
-                        name: true,
+                        firstName: true,
+                        lastName: true,
                         email: true
                     }
                 },
                 items: true
             }
         });
+
+        // Enviar notificación por email al cliente sobre la aprobación
+        try {
+            const clientName = `${updatedOrder.clientUser?.firstName || ''} ${updatedOrder.clientUser?.lastName || ''}`.trim() || 'Cliente';
+            const clientEmail = updatedOrder.clientUser?.email;
+
+            if (clientEmail) {
+                const template = emailTemplates.orderApproved(orderId, clientName);
+                await sendEmail({
+                    to: clientEmail,
+                    subject: template.subject,
+                    html: template.html
+                });
+            }
+        } catch (emailError) {
+            console.error('Error sending approval email notification:', emailError);
+            // No interrumpimos el flujo por errores de email
+        }
 
         return NextResponse.json({
             success: true,

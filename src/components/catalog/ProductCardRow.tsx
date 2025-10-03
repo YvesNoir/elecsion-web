@@ -158,8 +158,8 @@ export default function ProductCardRow({
                 </div>
 
 
-                {/* 17%: Precio */}
-                <div className="col-span-4 md:col-span-2">
+                {/* 25%: Precio */}
+                <div className="col-span-4 md:col-span-3">
                     <div className="text-[11px] uppercase tracking-wide text-[#7a7a7a]">Precio</div>
                     <div className="mt-1">
                         {isLoggedIn ? (
@@ -187,8 +187,8 @@ export default function ProductCardRow({
                     </div>
                 </div>
 
-                {/* 17%: IVA */}
-                <div className="col-span-4 md:col-span-2">
+                {/* 8%: IVA */}
+                <div className="col-span-4 md:col-span-1">
                     <div className="text-[11px] uppercase tracking-wide text-[#7a7a7a]">IVA</div>
                     <div className="mt-1 text-[#1C1C1C]">
                         {Number.isFinite(ivaPct) && ivaPct > 0 ? `${ivaPct.toFixed(1)}%` : "—"}

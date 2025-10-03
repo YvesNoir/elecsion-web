@@ -17,13 +17,16 @@ type ExcelImporterProps = {
     onImport: (data: ExcelRow[]) => Promise<void>;
     isOpen: boolean;
     onClose: () => void;
+    onImportSuccess?: () => void;
 };
 
-export default function ExcelImporter({ onImport, isOpen, onClose }: ExcelImporterProps) {
+export default function ExcelImporter({ onImport, isOpen, onClose, onImportSuccess }: ExcelImporterProps) {
     const [isDragOver, setIsDragOver] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [previewData, setPreviewData] = useState<ExcelRow[]>([]);
     const [showPreview, setShowPreview] = useState(false);
+    const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
+    const [isImporting, setIsImporting] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const processExcelFile = async (file: File) => {
@@ -111,7 +114,56 @@ export default function ExcelImporter({ onImport, isOpen, onClose }: ExcelImport
     const handleImportConfirm = async () => {
         try {
             setIsProcessing(true);
-            await onImport(previewData);
+            setIsImporting(true);
+            setImportProgress({ current: 0, total: previewData.length });
+
+            // Procesar productos en lotes con progreso
+            const batchSize = 10;
+            const results = { created: 0, updated: 0, errors: 0 };
+
+            for (let i = 0; i < previewData.length; i += batchSize) {
+                const batch = previewData.slice(i, i + batchSize);
+
+                try {
+                    const response = await fetch('/api/productos/import', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ products: batch }),
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        results.created += result.results.created || 0;
+                        results.updated += result.results.updated || 0;
+                        results.errors += result.results.errors || 0;
+                    } else {
+                        results.errors += batch.length;
+                    }
+                } catch (error) {
+                    console.error('Error en lote:', error);
+                    results.errors += batch.length;
+                }
+
+                // Actualizar progreso después de procesar el lote
+                const processedCount = Math.min(i + batchSize, previewData.length);
+                setImportProgress({ current: processedCount, total: previewData.length });
+
+                // Pequeña pausa para que se vea el progreso
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+
+            // Progreso final
+            setImportProgress({ current: previewData.length, total: previewData.length });
+
+            alert(`Importación completada:\n• Creados: ${results.created}\n• Actualizados: ${results.updated}\n• Errores: ${results.errors}`);
+
+            if (onImportSuccess) {
+                onImportSuccess();
+            }
+
             setShowPreview(false);
             setPreviewData([]);
             onClose();
@@ -120,6 +172,8 @@ export default function ExcelImporter({ onImport, isOpen, onClose }: ExcelImport
             alert('Error al importar los datos. Inténtalo nuevamente.');
         } finally {
             setIsProcessing(false);
+            setIsImporting(false);
+            setImportProgress({ current: 0, total: 0 });
         }
     };
 
@@ -250,11 +304,34 @@ export default function ExcelImporter({ onImport, isOpen, onClose }: ExcelImport
                                 )}
                             </div>
 
+                            {/* Barra de progreso durante la importación */}
+                            {isImporting && (
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-sm font-medium text-blue-900">
+                                            Procesando productos...
+                                        </span>
+                                        <span className="text-sm text-blue-700">
+                                            {importProgress.current} de {importProgress.total}
+                                        </span>
+                                    </div>
+                                    <div className="w-full bg-blue-200 rounded-full h-2">
+                                        <div
+                                            className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
+                                            style={{
+                                                width: `${importProgress.total > 0 ? (importProgress.current / importProgress.total) * 100 : 0}%`
+                                            }}
+                                        ></div>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="flex gap-3 justify-end">
                                 <button
                                     type="button"
                                     onClick={() => setShowPreview(false)}
-                                    className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                                    disabled={isImporting}
+                                    className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
                                 >
                                     Volver
                                 </button>
@@ -264,7 +341,12 @@ export default function ExcelImporter({ onImport, isOpen, onClose }: ExcelImport
                                     disabled={isProcessing}
                                     className="px-4 py-2 bg-[#384A93] text-white rounded-lg hover:bg-[#2e3d7a] disabled:opacity-50 transition-colors"
                                 >
-                                    {isProcessing ? 'Importando...' : 'Confirmar Importación'}
+                                    {isImporting
+                                        ? `Procesando ${importProgress.current} de ${importProgress.total}...`
+                                        : isProcessing
+                                            ? 'Importando...'
+                                            : 'Confirmar Importación'
+                                    }
                                 </button>
                             </div>
                         </div>
