@@ -64,10 +64,12 @@ export default function ProductCardRow({
 
     const [qty, setQty] = useState(0);
     const [exchangeRate, setExchangeRate] = useState<{ sell: number } | null>(null);
+    const [isLoadingExchange, setIsLoadingExchange] = useState(false);
 
     // Obtener cotización BNA para productos USD
     useEffect(() => {
         if (currency?.toUpperCase() === 'USD') {
+            setIsLoadingExchange(true);
             fetch('/api/exchange-rate')
                 .then(res => res.json())
                 .then(data => {
@@ -75,7 +77,8 @@ export default function ProductCardRow({
                         setExchangeRate(data);
                     }
                 })
-                .catch(err => console.error('Error fetching exchange rate:', err));
+                .catch(err => console.error('Error fetching exchange rate:', err))
+                .finally(() => setIsLoadingExchange(false));
         }
     }, [currency]);
 
@@ -130,8 +133,17 @@ export default function ProductCardRow({
                                 className="h-14 w-14 object-cover"
                                 onError={(e) => {
                                     const el = e.currentTarget as HTMLImageElement;
-                                    el.onerror = null;
-                                    el.src = "/product-images/placeholder.png";
+                                    const currentSrc = el.src;
+
+                                    // Si falló PNG, intentar JPG
+                                    if (currentSrc.endsWith('.png') && normalizedSku) {
+                                        el.src = `/product-images/${normalizedSku.toLowerCase().replace(/[^a-z0-9-]/g, '')}.jpg`;
+                                    }
+                                    // Si falló JPG o no hay SKU, usar placeholder
+                                    else {
+                                        el.onerror = null;
+                                        el.src = "/product-images/placeholder.png";
+                                    }
                                 }}
                             />
                         </div>
@@ -169,11 +181,16 @@ export default function ProductCardRow({
                                         <div className="font-medium text-[#1C1C1C]">
                                             {formatUSD(priceBase)}
                                         </div>
-                                        {priceInARS && (
+                                        {isLoadingExchange ? (
+                                            <div className="text-xs text-[#646464] mt-0.5 flex items-center gap-1">
+                                                <div className="w-3 h-3 border border-gray-300 border-t-[#384A93] rounded-full animate-spin"></div>
+                                                Obteniendo cotización...
+                                            </div>
+                                        ) : priceInARS ? (
                                             <div className="text-xs text-[#646464] mt-0.5">
                                                 Precio en pesos: {formatARS(priceInARS)}
                                             </div>
-                                        )}
+                                        ) : null}
                                     </div>
                                 ) : (
                                     <div className="font-medium text-[#1C1C1C]">

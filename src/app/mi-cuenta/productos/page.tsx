@@ -114,10 +114,23 @@ export default async function ProductosPage({
                 <div className="lg:col-span-3">
                     <div className="bg-white rounded-lg border border-[#B5B5B5]/40 overflow-hidden">
                         <div className="px-6 py-4 border-b border-[#B5B5B5]/40">
-                            <h1 className="text-xl font-semibold text-[#1C1C1C]">Productos</h1>
-                            <p className="text-sm text-[#646464] mt-1">
-                                Gestión de productos - Total: {totalCount} productos (Página {page} de {totalPages})
-                            </p>
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <h1 className="text-xl font-semibold text-[#1C1C1C]">Productos</h1>
+                                    <p className="text-sm text-[#646464] mt-1">
+                                        Gestión de productos - Total: {totalCount} productos (Página {page} de {totalPages})
+                                    </p>
+                                </div>
+                                <Link
+                                    href="/mi-cuenta/productos/subir-imagenes"
+                                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#384A93] rounded-md hover:bg-[#2e3d7a] transition-colors"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                    </svg>
+                                    Subir Imágenes
+                                </Link>
+                            </div>
                         </div>
 
                         <div className="p-6">

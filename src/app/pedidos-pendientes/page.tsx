@@ -6,6 +6,9 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import AccountSidebar from "@/components/AccountSidebar";
+import ConfirmModal from "@/components/ConfirmModal";
+import Toast from "@/components/Toast";
+import { useToast } from "@/hooks/useToast";
 
 interface OrderItem {
     id: string;
@@ -104,7 +107,20 @@ export default function PendingOrdersPage() {
     const { data: session, status } = useSession();
     const router = useRouter();
     const [orders, setOrders] = useState<Order[]>([]);
+    const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
+    const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        orderId: '',
+        orderCode: ''
+    });
+    const [cancelModal, setCancelModal] = useState({
+        isOpen: false,
+        orderId: '',
+        orderCode: ''
+    });
+    const { toast, showSuccess, showError, hideToast } = useToast();
 
     // Verificar autenticación y permisos
     useEffect(() => {
@@ -123,21 +139,33 @@ export default function PendingOrdersPage() {
         fetchOrders();
     }, [session, status, router]);
 
+    // Aplicar filtro cuando cambien los pedidos
+    useEffect(() => {
+        handleStatusFilterChange(statusFilter);
+    }, [orders, statusFilter]);
+
     const fetchOrders = async () => {
         try {
             const response = await fetch('/api/orders/all');
             if (response.ok) {
                 const data = await response.json();
                 
+                // Filtrar solo pedidos pendientes y cancelados (NO los aprobados que van a pedidos-confirmados)
+                const pendingOrders = data.filter((order: Order) =>
+                    order.status === 'SUBMITTED' || order.status === 'CANCELED'
+                );
+
                 // Si es vendedor, filtrar solo los pedidos asignados a él
                 if (session?.user.role === "SELLER") {
-                    const sellerOrders = data.filter((order: Order) => 
+                    const sellerOrders = pendingOrders.filter((order: Order) =>
                         order.sellerUser?.email === session.user.email
                     );
                     setOrders(sellerOrders);
+                    setFilteredOrders(sellerOrders);
                 } else {
-                    // Los admins ven todos los pedidos
-                    setOrders(data);
+                    // Los admins ven todos los pedidos pendientes y cancelados
+                    setOrders(pendingOrders);
+                    setFilteredOrders(pendingOrders);
                 }
             } else {
                 console.error('Error al obtener pedidos:', response.status);
@@ -161,13 +189,62 @@ export default function PendingOrdersPage() {
         printWindow.print();
     };
 
-    const handleConfirmOrder = async (orderId: string) => {
-        if (!confirm('¿Estás seguro de que quieres confirmar este pedido?')) {
-            return;
-        }
+    const openConfirmModal = (orderId: string, orderCode: string) => {
+        setConfirmModal({
+            isOpen: true,
+            orderId,
+            orderCode
+        });
+    };
 
+    const closeConfirmModal = () => {
+        setConfirmModal({
+            isOpen: false,
+            orderId: '',
+            orderCode: ''
+        });
+    };
+
+    const openCancelModal = (orderId: string, orderCode: string) => {
+        setCancelModal({
+            isOpen: true,
+            orderId,
+            orderCode
+        });
+    };
+
+    const closeCancelModal = () => {
+        setCancelModal({
+            isOpen: false,
+            orderId: '',
+            orderCode: ''
+        });
+    };
+
+    const handleStatusFilterChange = (newStatus: string) => {
+        setStatusFilter(newStatus);
+
+        if (newStatus === 'all') {
+            setFilteredOrders(orders);
+        } else {
+            const filtered = orders.filter(order => {
+                switch (newStatus) {
+                    case 'pending':
+                        return order.status === 'SUBMITTED';
+                    case 'canceled':
+                        return order.status === 'CANCELED';
+                    default:
+                        return true;
+                }
+            });
+            setFilteredOrders(filtered);
+        }
+    };
+
+
+    const handleConfirmOrder = async () => {
         try {
-            const response = await fetch(`/api/orders/${orderId}/confirm`, {
+            const response = await fetch(`/api/orders/${confirmModal.orderId}/confirm`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -175,16 +252,41 @@ export default function PendingOrdersPage() {
             });
 
             if (response.ok) {
-                // Refresh orders list
+                // Cerrar modal y refresh orders list
+                closeConfirmModal();
                 await fetchOrders();
-                alert('Pedido confirmado exitosamente');
+                showSuccess('Pedido confirmado exitosamente');
             } else {
                 const error = await response.json();
-                alert(`Error: ${error.error}`);
+                showError(`Error: ${error.error}`);
             }
         } catch (error) {
             console.error('Error confirming order:', error);
-            alert('Error al confirmar el pedido');
+            showError('Error al confirmar el pedido');
+        }
+    };
+
+    const handleCancelOrder = async () => {
+        try {
+            const response = await fetch(`/api/orders/${cancelModal.orderId}/cancel`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (response.ok) {
+                // Cerrar modal y refresh orders list
+                closeCancelModal();
+                await fetchOrders();
+                showSuccess('Pedido cancelado exitosamente');
+            } else {
+                const error = await response.json();
+                showError(`Error: ${error.error}`);
+            }
+        } catch (error) {
+            console.error('Error canceling order:', error);
+            showError('Error al cancelar el pedido');
         }
     };
 
@@ -271,15 +373,33 @@ export default function PendingOrdersPage() {
 
     const canConfirmOrder = (order: Order) => {
         if (!session?.user) return false;
-        
+
         // Los admins pueden confirmar cualquier pedido
         if (session.user.role === "ADMIN") return true;
-        
+
         // Los vendedores solo pueden confirmar pedidos que les están asignados
         if (session.user.role === "SELLER") {
             return order.sellerUser?.email === session.user.email;
         }
-        
+
+        return false;
+    };
+
+    const canCancelOrder = (order: Order) => {
+        if (!session?.user) return false;
+
+        // Solo se pueden cancelar pedidos que no estén completados/entregados/ya cancelados
+        const nonCancellableStatuses = ["FULFILLED", "SHIPPED", "DELIVERED", "CANCELED"];
+        if (nonCancellableStatuses.includes(order.status)) return false;
+
+        // Los admins pueden cancelar cualquier pedido
+        if (session.user.role === "ADMIN") return true;
+
+        // Los vendedores solo pueden cancelar pedidos que les están asignados
+        if (session.user.role === "SELLER") {
+            return order.sellerUser?.email === session.user.email;
+        }
+
         return false;
     };
 
@@ -326,8 +446,19 @@ export default function PendingOrdersPage() {
                                         }
                                     </p>
                                 </div>
-                                <div className="text-sm text-[#646464]">
-                                    Total: {orders.length} pedidos
+                                <div className="flex items-center gap-4">
+                                    <select
+                                        value={statusFilter}
+                                        onChange={(e) => handleStatusFilterChange(e.target.value)}
+                                        className="px-3 py-1 text-sm border border-[#B5B5B5]/40 rounded-md bg-white text-[#1C1C1C] focus:outline-none focus:ring-2 focus:ring-[#384A93] focus:border-transparent"
+                                    >
+                                        <option value="all">Todos los estados</option>
+                                        <option value="pending">Pendientes</option>
+                                        <option value="canceled">Cancelados</option>
+                                    </select>
+                                    <div className="text-sm text-[#646464]">
+                                        Mostrando: {filteredOrders.length} de {orders.length} pedidos
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -347,14 +478,17 @@ export default function PendingOrdersPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[#B5B5B5]/20">
-                                    {orders.length === 0 ? (
+                                    {filteredOrders.length === 0 ? (
                                         <tr>
                                             <td colSpan={8} className="px-6 py-8 text-center text-[#646464]">
-                                                No hay pedidos pendientes
+                                                {orders.length === 0
+                                                    ? "No hay pedidos pendientes"
+                                                    : `No hay pedidos con el filtro seleccionado`
+                                                }
                                             </td>
                                         </tr>
                                     ) : (
-                                        orders.map((order) => (
+                                        filteredOrders.map((order) => (
                                             <tr key={order.id} className="hover:bg-[#F5F5F7]/50">
                                                 <td className="px-4 py-4">
                                                     <span className="font-medium text-[#1C1C1C] text-sm">
@@ -427,11 +561,20 @@ export default function PendingOrdersPage() {
                                                         </button>
                                                         {order.status === 'SUBMITTED' && canConfirmOrder(order) && (
                                                             <button
-                                                                onClick={() => handleConfirmOrder(order.id)}
+                                                                onClick={() => openConfirmModal(order.id, order.code)}
                                                                 className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
                                                                 title="Confirmar pedido"
                                                             >
                                                                 ✅
+                                                            </button>
+                                                        )}
+                                                        {canCancelOrder(order) && (
+                                                            <button
+                                                                onClick={() => openCancelModal(order.id, order.code)}
+                                                                className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                                                                title="Cancelar pedido"
+                                                            >
+                                                                ❌
                                                             </button>
                                                         )}
                                                     </div>
@@ -451,24 +594,30 @@ export default function PendingOrdersPage() {
                                         <div>
                                             <span className="text-[#646464]">Cotizaciones:</span>
                                             <span className="ml-1 font-medium text-[#1C1C1C]">
-                                                {orders.filter(o => o.type === 'QUOTE').length}
+                                                {filteredOrders.filter(o => o.type === 'QUOTE').length}
                                             </span>
                                         </div>
                                         <div>
                                             <span className="text-[#646464]">Pedidos:</span>
                                             <span className="ml-1 font-medium text-[#1C1C1C]">
-                                                {orders.filter(o => o.type === 'ORDER').length}
+                                                {filteredOrders.filter(o => o.type === 'ORDER').length}
                                             </span>
                                         </div>
                                         <div>
                                             <span className="text-[#646464]">Pendientes:</span>
                                             <span className="ml-1 font-medium text-[#1C1C1C]">
-                                                {orders.filter(o => o.status === 'SUBMITTED').length}
+                                                {filteredOrders.filter(o => o.status === 'SUBMITTED').length}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <span className="text-[#646464]">Cancelados:</span>
+                                            <span className="ml-1 font-medium text-[#1C1C1C]">
+                                                {filteredOrders.filter(o => o.status === 'CANCELED').length}
                                             </span>
                                         </div>
                                     </div>
                                     <div className="text-[#646464]">
-                                        Total en cotizaciones: {money(orders.reduce((sum, o) => sum + (o.type === 'QUOTE' ? o.total : 0), 0))}
+                                        Total filtrado: {money(filteredOrders.reduce((sum, o) => sum + o.total, 0))}
                                     </div>
                                 </div>
                             </div>
@@ -476,6 +625,38 @@ export default function PendingOrdersPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Modal de confirmación */}
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                title="Confirmar Pedido"
+                message={`¿Estás seguro que deseas confirmar el pedido ${confirmModal.orderCode}? Esta acción no se puede deshacer.`}
+                confirmText="Confirmar"
+                cancelText="Cancelar"
+                confirmButtonClass="bg-green-600 hover:bg-green-700 text-white"
+                onConfirm={handleConfirmOrder}
+                onCancel={closeConfirmModal}
+            />
+
+            {/* Modal de cancelación */}
+            <ConfirmModal
+                isOpen={cancelModal.isOpen}
+                title="Cancelar Pedido"
+                message={`¿Estás seguro que deseas cancelar el pedido ${cancelModal.orderCode}? Esta acción no se puede deshacer y se notificará al cliente.`}
+                confirmText="Cancelar Pedido"
+                cancelText="No cancelar"
+                confirmButtonClass="bg-red-600 hover:bg-red-700 text-white"
+                onConfirm={handleCancelOrder}
+                onCancel={closeCancelModal}
+            />
+
+            {/* Toast de notificaciones */}
+            <Toast
+                message={toast.message}
+                type={toast.type}
+                isVisible={toast.isVisible}
+                onClose={hideToast}
+            />
         </>
     );
 }

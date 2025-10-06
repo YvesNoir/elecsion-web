@@ -267,6 +267,15 @@ model ExchangeRate {
   @@map("ExchangeRate")
 }
 
+model Counter {
+  id      String @id @default(cuid())
+  name    String @unique
+  value   Int    @default(0)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("Counter")
+}
+
 /// *
 /// * =========================
 /// * Enums

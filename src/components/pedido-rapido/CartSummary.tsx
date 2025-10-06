@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useCart } from "@/store/cart";
+import Toast from "@/components/Toast";
+import { useToast } from "@/hooks/useToast";
 
 type CartSummaryProps = {
     selectedClientId: string;
@@ -51,21 +53,54 @@ export default function CartSummary({ selectedClientId }: CartSummaryProps) {
         cart.clear();
     };
 
-    const createOrder = () => {
+    const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+    const { toast, showSuccess, showError, hideToast } = useToast();
+
+    const createOrder = async () => {
         if (!selectedClientId) {
-            alert("Por favor, selecciona un cliente primero");
+            showError("Por favor, selecciona un cliente primero");
             return;
         }
 
         if (cartItems.length === 0) {
-            alert("No hay productos en el carrito");
+            showError("No hay productos en el carrito");
             return;
         }
 
-        // TODO: Implementar creación de pedido
-        console.log("Crear pedido para cliente:", selectedClientId);
-        console.log("Items:", cartItems);
-        alert("Funcionalidad de crear pedido próximamente");
+        setIsCreatingOrder(true);
+
+        try {
+            // Preparar los items para la API
+            const orderItems = cartItems.map(item => ({
+                productId: item.id,
+                qty: Number(item.qty)
+            }));
+
+            const response = await fetch('/api/orders', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    items: orderItems,
+                    clientId: selectedClientId
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                showSuccess(`Pedido ${result.orderCode} creado exitosamente`);
+                cart.clear(); // Limpiar carrito después de crear el pedido
+            } else {
+                showError(result.error || 'Error al crear el pedido');
+            }
+        } catch (error) {
+            console.error('Error creating order:', error);
+            showError('Error al crear el pedido');
+        } finally {
+            setIsCreatingOrder(false);
+        }
     };
 
     return (
@@ -162,13 +197,31 @@ export default function CartSummary({ selectedClientId }: CartSummaryProps) {
                     {/* Botón crear pedido */}
                     <button
                         onClick={createOrder}
-                        disabled={!selectedClientId || cartItems.length === 0}
-                        className="w-full bg-[#384A93] text-white py-2 px-4 rounded-md hover:bg-[#2e3d7a] disabled:bg-[#B5B5B5] disabled:cursor-not-allowed transition-colors text-sm font-medium"
+                        disabled={!selectedClientId || cartItems.length === 0 || isCreatingOrder}
+                        className="w-full bg-[#384A93] text-white py-2 px-4 rounded-md hover:bg-[#2e3d7a] disabled:bg-[#B5B5B5] disabled:cursor-not-allowed transition-colors text-sm font-medium flex items-center justify-center"
                     >
-                        Crear Pedido
+                        {isCreatingOrder ? (
+                            <>
+                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Creando...
+                            </>
+                        ) : (
+                            'Crear Pedido'
+                        )}
                     </button>
                 </div>
             )}
+
+            {/* Toast de notificaciones */}
+            <Toast
+                message={toast.message}
+                type={toast.type}
+                isVisible={toast.isVisible}
+                onClose={hideToast}
+            />
         </div>
     );
 }

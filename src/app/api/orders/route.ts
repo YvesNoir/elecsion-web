@@ -3,10 +3,12 @@ import { prisma } from "@/lib/db";
 import { OrderType, OrderStatus, Prisma } from "@prisma/client";
 import { getSession } from "@/lib/session";
 import { sendEmail, emailTemplates } from "@/lib/email";
+import { generateQuoteCode, generateOrderCode } from "@/lib/counter";
 
 type Body = {
     items: Array<{ productId: string; qty: number }>;
     contact?: { name?: string; email?: string; phone?: string; message?: string };
+    clientId?: string; // Para pedidos rápidos desde admin/vendedor
 };
 
 export async function POST(req: Request) {
@@ -20,8 +22,10 @@ export async function POST(req: Request) {
 
         // Invitado => QUOTE
         if (!session?.user) {
+            const code = await generateQuoteCode();
             const order = await prisma.order.create({
                 data: {
+                    code,
                     type: OrderType.QUOTE,
                     status: OrderStatus.DRAFT,
                     currency: "ARS",
@@ -41,20 +45,52 @@ export async function POST(req: Request) {
                         })),
                     },
                 },
-                select: { id: true },
+                select: { id: true, code: true },
             });
 
-            return NextResponse.json({ ok: true, orderId: order.id, type: "QUOTE" });
+            return NextResponse.json({ ok: true, orderId: order.id, orderCode: order.code, type: "QUOTE" });
         }
 
-        // Cliente => ORDER
-        const userId = session.user.id;
-        const user = await prisma.user.findUnique({
-            where: { id: userId },
+        // Determinar el cliente para el pedido
+        const currentUserId = session.user.id;
+        const currentUser = await prisma.user.findUnique({
+            where: { id: currentUserId },
             select: { id: true, role: true, assignedSellerId: true },
         });
-        if (!user || user.role !== "CLIENT") {
-            return NextResponse.json({ error: "Solo clientes pueden crear pedidos" }, { status: 403 });
+
+        if (!currentUser) {
+            return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+        }
+
+        let clientUserId: string;
+        let clientUser: any;
+
+        // Si es cliente regular, usar su propio ID
+        if (currentUser.role === "CLIENT") {
+            clientUserId = currentUser.id;
+            clientUser = currentUser;
+        }
+        // Si es admin/vendedor y se especifica clientId, crear pedido para ese cliente
+        else if ((currentUser.role === "ADMIN" || currentUser.role === "SELLER") && body.clientId) {
+            const targetClient = await prisma.user.findUnique({
+                where: { id: body.clientId },
+                select: { id: true, role: true, assignedSellerId: true },
+            });
+
+            if (!targetClient || targetClient.role !== "CLIENT") {
+                return NextResponse.json({ error: "Cliente no válido" }, { status: 400 });
+            }
+
+            // Verificar permisos: vendedores solo pueden crear pedidos para sus clientes asignados
+            if (currentUser.role === "SELLER" && targetClient.assignedSellerId !== currentUser.id) {
+                return NextResponse.json({ error: "No tienes permisos para crear pedidos para este cliente" }, { status: 403 });
+            }
+
+            clientUserId = targetClient.id;
+            clientUser = targetClient;
+        }
+        else {
+            return NextResponse.json({ error: "Debes especificar un cliente para el pedido" }, { status: 400 });
         }
 
         const ids = body.items.map((x) => x.productId);
@@ -110,13 +146,25 @@ export async function POST(req: Request) {
             };
         });
 
+        // Determinar el estado del pedido según quien lo crea
+        let orderStatus: OrderStatus;
+        if (currentUser.role === "ADMIN" || currentUser.role === "SELLER") {
+            // Admin/vendedor crea pedido para cliente - va directo como confirmado
+            orderStatus = OrderStatus.APPROVED;
+        } else {
+            // Cliente crea su propio pedido - va como pendiente para revisión
+            orderStatus = OrderStatus.SUBMITTED;
+        }
+
+        const code = await generateOrderCode();
         const order = await prisma.order.create({
             data: {
+                code,
                 type: OrderType.ORDER,
-                status: OrderStatus.DRAFT,
+                status: orderStatus,
                 currency: "ARS",
-                clientUserId: user.id,
-                sellerUserId: user.assignedSellerId ?? null,
+                clientUserId: clientUserId,
+                sellerUserId: clientUser.assignedSellerId ?? null,
                 subtotal,
                 tax,
                 total,
@@ -124,11 +172,11 @@ export async function POST(req: Request) {
             },
             select: {
                 id: true,
+                code: true,
                 clientUser: {
                     select: {
                         email: true,
-                        firstName: true,
-                        lastName: true
+                        name: true
                     }
                 }
             },
@@ -136,13 +184,21 @@ export async function POST(req: Request) {
 
         // Enviar notificaciones por email
         try {
-            const clientName = `${order.clientUser?.firstName || ''} ${order.clientUser?.lastName || ''}`.trim() || 'Cliente';
+            const clientName = order.clientUser?.name || 'Cliente';
             const clientEmail = order.clientUser?.email;
-            const orderNumber = order.id;
+            const orderNumber = order.code || order.id;
 
-            // 1. Email al cliente confirmando que el pedido está en revisión
+            // 1. Email al cliente según el estado del pedido
             if (clientEmail) {
-                const clientTemplate = emailTemplates.orderCreatedForClient(orderNumber, clientName);
+                let clientTemplate;
+                if (orderStatus === OrderStatus.APPROVED) {
+                    // Pedido creado por admin/vendedor - ya está confirmado
+                    clientTemplate = emailTemplates.orderApproved(orderNumber, clientName);
+                } else {
+                    // Pedido creado por cliente - está pendiente de revisión
+                    clientTemplate = emailTemplates.orderCreatedForClient(orderNumber, clientName);
+                }
+
                 await sendEmail({
                     to: clientEmail,
                     subject: clientTemplate.subject,
@@ -150,47 +206,49 @@ export async function POST(req: Request) {
                 });
             }
 
-            // 2. Email a vendedores y administradores
-            const recipients = [];
+            // 2. Email a vendedores y administradores - pedido pendiente de revisión
+            if (orderStatus === OrderStatus.SUBMITTED) {
+                const recipients = [];
 
-            // Obtener el vendedor asignado
-            if (user.assignedSellerId) {
-                const seller = await prisma.user.findUnique({
-                    where: { id: user.assignedSellerId },
+                // Obtener el vendedor asignado
+                if (clientUser.assignedSellerId) {
+                    const seller = await prisma.user.findUnique({
+                        where: { id: clientUser.assignedSellerId },
+                        select: { email: true }
+                    });
+                    if (seller?.email) {
+                        recipients.push(seller.email);
+                    }
+                }
+
+                // Obtener todos los administradores
+                const admins = await prisma.user.findMany({
+                    where: { role: 'ADMIN' },
                     select: { email: true }
                 });
-                if (seller?.email) {
-                    recipients.push(seller.email);
-                }
-            }
 
-            // Obtener todos los administradores
-            const admins = await prisma.user.findMany({
-                where: { role: 'ADMIN' },
-                select: { email: true }
-            });
-
-            admins.forEach(admin => {
-                if (admin.email) {
-                    recipients.push(admin.email);
-                }
-            });
-
-            // Enviar notificación a vendedores y administradores
-            if (recipients.length > 0 && clientEmail) {
-                const sellerTemplate = emailTemplates.orderCreatedForSellers(orderNumber, clientName, clientEmail);
-                await sendEmail({
-                    to: recipients,
-                    subject: sellerTemplate.subject,
-                    html: sellerTemplate.html
+                admins.forEach(admin => {
+                    if (admin.email) {
+                        recipients.push(admin.email);
+                    }
                 });
+
+                // Enviar notificación a vendedores y administradores
+                if (recipients.length > 0 && clientEmail) {
+                    const sellerTemplate = emailTemplates.orderCreatedForSellers(orderNumber, clientName, clientEmail);
+                    await sendEmail({
+                        to: recipients,
+                        subject: sellerTemplate.subject,
+                        html: sellerTemplate.html
+                    });
+                }
             }
         } catch (emailError) {
             console.error('Error sending email notifications:', emailError);
             // No interrumpimos el flujo por errores de email
         }
 
-        return NextResponse.json({ ok: true, orderId: order.id, type: "ORDER" });
+        return NextResponse.json({ ok: true, orderId: order.id, orderCode: order.code, type: "ORDER" });
     } catch (e) {
         console.error(e);
         return NextResponse.json({ error: "Error creando pedido/cotización" }, { status: 500 });

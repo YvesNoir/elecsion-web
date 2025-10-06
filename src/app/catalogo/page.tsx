@@ -20,17 +20,20 @@ export default async function CatalogoPage({ searchParams }: Props) {
     const skip = (currentPage - 1) * productsPerPage;
 
     const brandsRaw = await prisma.brand.findMany({
+        where: {
+            isActive: true  // Solo marcas activas
+        },
         orderBy: { name: "asc" },
         select: {
             id: true,
             name: true,
             slug: true,
-            _count: { 
-                select: { 
+            _count: {
+                select: {
                     products: {
                         where: { isActive: true, isDeleted: false }
-                    } 
-                } 
+                    }
+                }
             },
         },
     });

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useCart } from "@/store/cart";
 
 type Product = {
@@ -32,9 +32,82 @@ function formatMoney(value: number, currency: string) {
     }).format(n);
 }
 
+function formatUSD(value: number) {
+    return `U$S ${Number(value ?? 0).toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
+}
+
+function formatARS(value: number) {
+    return `$ ${Number(value ?? 0).toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
+}
+
+// Componente para mostrar precios con cotización
+function PriceDisplay({
+    price,
+    currency,
+    unit,
+    exchangeRate,
+    isLoadingExchange
+}: {
+    price: number;
+    currency: string;
+    unit?: string | null;
+    exchangeRate: { sell: number } | null;
+    isLoadingExchange: boolean;
+}) {
+    const isUSD = currency?.toUpperCase() === 'USD';
+    const priceInARS = isUSD && exchangeRate?.sell ? price * exchangeRate.sell : null;
+
+    return (
+        <div>
+            <div className="text-sm font-medium text-[#1C1C1C]">
+                {isUSD ? formatUSD(price) : formatMoney(price, currency)}
+            </div>
+            {isUSD && (
+                <div>
+                    {isLoadingExchange ? (
+                        <div className="text-xs text-[#646464] mt-0.5 flex items-center gap-1">
+                            <div className="w-3 h-3 border border-gray-300 border-t-[#384A93] rounded-full animate-spin"></div>
+                            Obteniendo cotización...
+                        </div>
+                    ) : priceInARS ? (
+                        <div className="text-xs text-[#646464] mt-0.5">
+                            Precio en pesos: {formatARS(priceInARS)}
+                        </div>
+                    ) : null}
+                </div>
+            )}
+            {unit && (
+                <div className="text-xs text-[#646464]">
+                    por {unit}
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function ProductSearchTable({ products, loading, selectedClientId }: ProductSearchTableProps) {
     const [quantities, setQuantities] = useState<Record<string, number>>({});
+    const [exchangeRate, setExchangeRate] = useState<{ sell: number } | null>(null);
+    const [isLoadingExchange, setIsLoadingExchange] = useState(false);
     const cart = useCart() as any;
+
+    // Obtener cotización BNA si hay productos USD
+    useEffect(() => {
+        const hasUSDProducts = products.some(product => product.currency?.toUpperCase() === 'USD');
+
+        if (hasUSDProducts && !exchangeRate) {
+            setIsLoadingExchange(true);
+            fetch('/api/exchange-rate')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.sell) {
+                        setExchangeRate(data);
+                    }
+                })
+                .catch(err => console.error('Error fetching exchange rate:', err))
+                .finally(() => setIsLoadingExchange(false));
+        }
+    }, [products, exchangeRate]);
 
     const updateQuantity = (productId: string, newQty: number) => {
         setQuantities(prev => ({
@@ -52,6 +125,13 @@ export default function ProductSearchTable({ products, loading, selectedClientId
             return;
         }
 
+        // Convertir precios USD a pesos si tenemos cotización
+        const isUSD = product.currency?.toUpperCase() === 'USD';
+        const finalPrice = isUSD && exchangeRate?.sell
+            ? Number(product.priceBase) * exchangeRate.sell
+            : Number(product.priceBase);
+        const finalCurrency = isUSD && exchangeRate?.sell ? 'ARS' : product.currency;
+
         const addItem = cart?.addItem;
         if (typeof addItem === "function") {
             addItem(
@@ -59,8 +139,8 @@ export default function ProductSearchTable({ products, loading, selectedClientId
                     id: product.sku || product.id,
                     sku: product.sku || product.id,
                     name: product.name,
-                    price: Number(product.priceBase),
-                    currency: product.currency,
+                    price: finalPrice,
+                    currency: finalCurrency,
                     unit: product.unit ?? undefined,
                 },
                 qty
@@ -138,8 +218,14 @@ export default function ProductSearchTable({ products, loading, selectedClientId
                             <div className="flex justify-between items-center">
                                 <div>
                                     <div className="text-xs text-[#646464] mb-1">Precio:</div>
-                                    <div className="text-lg font-semibold text-[#1C1C1C]">
-                                        {formatMoney(product.priceBase, product.currency)}
+                                    <div className="text-lg">
+                                        <PriceDisplay
+                                            price={product.priceBase}
+                                            currency={product.currency}
+                                            unit={product.unit}
+                                            exchangeRate={exchangeRate}
+                                            isLoadingExchange={isLoadingExchange}
+                                        />
                                     </div>
                                 </div>
 
@@ -237,13 +323,14 @@ export default function ProductSearchTable({ products, loading, selectedClientId
                                             </span>
                                         )}
                                     </td>
-                                    <td className="px-4 py-3 text-sm font-medium text-[#1C1C1C]">
-                                        {formatMoney(product.priceBase, product.currency)}
-                                        {product.unit && (
-                                            <div className="text-xs text-[#646464]">
-                                                por {product.unit}
-                                            </div>
-                                        )}
+                                    <td className="px-4 py-3">
+                                        <PriceDisplay
+                                            price={product.priceBase}
+                                            currency={product.currency}
+                                            unit={product.unit}
+                                            exchangeRate={exchangeRate}
+                                            isLoadingExchange={isLoadingExchange}
+                                        />
                                     </td>
                                     <td className="px-4 py-3 text-center">
                                         <div className="flex items-center justify-center gap-2">

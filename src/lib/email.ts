@@ -212,4 +212,38 @@ export const emailTemplates = {
             </div>
         `
     }),
+
+    orderCanceled: (orderNumber: string, clientName: string) => ({
+        subject: `Pedido #${orderNumber} - Cancelado`,
+        html: `
+            <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
+                <div style="background-color: #dc3545; color: white; padding: 20px; text-align: center;">
+                    <h1 style="margin: 0;">Elecsion</h1>
+                </div>
+
+                <div style="padding: 30px; background-color: #f9f9f9;">
+                    <h2 style="color: #dc3545; margin-bottom: 20px;">Tu pedido ha sido cancelado</h2>
+
+                    <p>Estimado/a ${clientName},</p>
+
+                    <p>Te informamos que tu pedido <strong>#${orderNumber}</strong> ha sido <strong>cancelado</strong>.</p>
+
+                    <div style="background-color: #f8d7da; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #dc3545;">
+                        <p style="margin: 0; color: #721c24;"><strong>Estado actual:</strong> Cancelado ✗</p>
+                    </div>
+
+                    <p>Si tienes alguna consulta sobre la cancelación o deseas realizar un nuevo pedido, no dudes en contactarnos.</p>
+
+                    <p>Lamentamos cualquier inconveniente que esto pueda causar.</p>
+
+                    <p>Saludos cordiales,<br>
+                    <strong>Equipo de Elecsion</strong></p>
+                </div>
+
+                <div style="background-color: #646464; color: white; padding: 15px; text-align: center; font-size: 12px;">
+                    <p style="margin: 0;">Este es un email automático, por favor no respondas a este mensaje.</p>
+                </div>
+            </div>
+        `
+    }),
 };
