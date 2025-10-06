@@ -14,8 +14,8 @@ export async function GET(req: Request) {
 
     // Filtro por marca - puede ser slug o ID
     if (brand) {
-        // Si es un UUID, usar brandId directamente
-        if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(brand)) {
+        // Si es un UUID/cuid (contiene caracteres que no serían un slug normal), usar brandId directamente
+        if (/^[a-z0-9]{25}$/.test(brand) || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(brand)) {
             where.brandId = brand;
         } else {
             // Si no es UUID, asumir que es slug

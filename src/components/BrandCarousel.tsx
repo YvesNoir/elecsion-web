@@ -33,6 +33,10 @@ const brandLogos: Record<string, { logo: string; logoGrey: string }> = {
         logo: "/brand-logos/flexivolt.jpg",
         logoGrey: "/brand-logos/flexivolt-grey.png"
     },
+    huferjo: {
+        logo: "/brand-logos/huferjo.png",
+        logoGrey: "/brand-logos/huferjo-grey.png"
+    },
     jeluz: {
         logo: "/brand-logos/jeluz.jpg",
         logoGrey: "/brand-logos/jeluz-grey.png"
@@ -41,9 +45,21 @@ const brandLogos: Record<string, { logo: string; logoGrey: string }> = {
         logo: "/brand-logos/kalop.jpg",
         logoGrey: "/brand-logos/kalop-grey.png"
     },
+    macroled: {
+        logo: "/brand-logos/macroled.png",
+        logoGrey: "/brand-logos/macroled-grey.png"
+    },
+    mota: {
+        logo: "/brand-logos/mota.png",
+        logoGrey: "/brand-logos/mota-grey.png"
+    },
     richi: {
-        logo: "/brand-logos/richi.jpg",
+        logo: "/brand-logos/richi.png",
         logoGrey: "/brand-logos/richi-grey.png"
+    },
+    rottweiler: {
+        logo: "/brand-logos/rottweiler.png",
+        logoGrey: "/brand-logos/rottweiler-grey.png"
     },
     rio: {
         logo: "/brand-logos/rio.jpg",
@@ -60,6 +76,10 @@ const brandLogos: Record<string, { logo: string; logoGrey: string }> = {
     starbox: {
         logo: "/brand-logos/starbox.jpg",
         logoGrey: "/brand-logos/starbox-grey.png"
+    },
+    taad: {
+        logo: "/brand-logos/taad.png",
+        logoGrey: "/brand-logos/taad-grey.png"
     },
     tacsa: {
         logo: "/brand-logos/tacsa.jpg",
@@ -92,15 +112,16 @@ export default function BrandCarousel({ brands }: BrandCarouselProps) {
 
     // Marcas adicionales que aún no están en la base de datos
     const additionalBrands = [
-        { id: "rioflex", name: "RIOFLEX", slug: "rioflex" },
-        { id: "sixelectric", name: "SIXELECTRIC", slug: "sixelectric" },
-        { id: "starbox", name: "STARBOX", slug: "starbox" },
         { id: "tacsa", name: "TACSA", slug: "tacsa" },
-        { id: "tecnocom", name: "TECNOCOM", slug: "tecnocom" },
         { id: "trefilcon", name: "TREFILCON", slug: "trefilcon" },
         { id: "jeluz", name: "JELUZ", slug: "jeluz" },
         { id: "kalop", name: "KALOP", slug: "kalop" },
-        { id: "yarlux", name: "YARLUX", slug: "yarlux" }
+        { id: "huferjo", name: "HUFERJO", slug: "huferjo" },
+        { id: "macroled", name: "MACROLED", slug: "macroled" },
+        { id: "mota", name: "MOTA", slug: "mota" },
+        { id: "rottweiler", name: "ROTTWEILER", slug: "rottweiler" },
+        { id: "taad", name: "TAAD", slug: "taad" }
+        // Removidas del carrusel: rioflex, sixelectric, starbox, tecnocom, yarlux
     ];
 
     // Combinar marcas existentes con las adicionales
