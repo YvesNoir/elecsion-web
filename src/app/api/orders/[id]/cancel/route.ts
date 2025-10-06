@@ -9,7 +9,7 @@ export async function PATCH(
 ) {
     try {
         const session = await getSession();
-        
+
         // Verificar que el usuario esté logueado
         if (!session?.user) {
             return NextResponse.json({ error: "No autorizado" }, { status: 401 });
@@ -34,26 +34,26 @@ export async function PATCH(
         // Verificar permisos: debe ser admin o el vendedor asignado al pedido
         const isAdmin = session.user.role === "ADMIN";
         const isAssignedSeller = order.sellerUserId && order.sellerUserId === session.user.id;
-        
+
         if (!isAdmin && !isAssignedSeller) {
-            return NextResponse.json({ 
-                error: "Solo administradores o el vendedor asignado pueden confirmar este pedido" 
+            return NextResponse.json({
+                error: "Solo administradores o el vendedor asignado pueden cancelar este pedido"
             }, { status: 403 });
         }
 
-        // Verificar que el pedido esté en estado SUBMITTED
-        if (order.status !== "SUBMITTED") {
-            return NextResponse.json({ 
-                error: `El pedido ya está en estado ${order.status} y no puede ser confirmado` 
+        // Verificar que el pedido pueda ser cancelado (no debe estar ya completado/entregado)
+        const nonCancellableStatuses = ["FULFILLED", "SHIPPED", "DELIVERED", "CANCELED"];
+        if (nonCancellableStatuses.includes(order.status)) {
+            return NextResponse.json({
+                error: `El pedido ya está en estado ${order.status} y no puede ser cancelado`
             }, { status: 400 });
         }
 
-        // Actualizar el estado y tipo del pedido - QUOTE se convierte en ORDER cuando se aprueba
+        // Actualizar el estado del pedido a CANCELED
         const updatedOrder = await prisma.order.update({
             where: { id: orderId },
             data: {
-                status: "APPROVED",
-                type: "ORDER", // Cambiar de QUOTE a ORDER
+                status: "CANCELED",
                 updatedAt: new Date()
             },
             include: {
@@ -73,13 +73,13 @@ export async function PATCH(
             }
         });
 
-        // Enviar notificación por email al cliente sobre la aprobación
+        // Enviar notificación por email al cliente sobre la cancelación
         try {
-            const clientName = updatedOrder.clientUser?.name || 'Cliente';
-            const clientEmail = updatedOrder.clientUser?.email;
+            const clientName = updatedOrder.clientUser?.name || updatedOrder.quoteName || 'Cliente';
+            const clientEmail = updatedOrder.clientUser?.email || updatedOrder.quoteEmail;
 
             if (clientEmail) {
-                const template = emailTemplates.orderApproved(orderId, clientName);
+                const template = emailTemplates.orderCanceled(orderId, clientName);
                 await sendEmail({
                     to: clientEmail,
                     subject: template.subject,
@@ -87,20 +87,20 @@ export async function PATCH(
                 });
             }
         } catch (emailError) {
-            console.error('Error sending approval email notification:', emailError);
+            console.error('Error sending cancellation email notification:', emailError);
             // No interrumpimos el flujo por errores de email
         }
 
         return NextResponse.json({
             success: true,
             order: updatedOrder,
-            message: "Pedido confirmado exitosamente"
+            message: "Pedido cancelado exitosamente"
         });
 
     } catch (error) {
-        console.error("Error confirming order:", error);
+        console.error("Error canceling order:", error);
         return NextResponse.json(
-            { error: "Error interno del servidor" }, 
+            { error: "Error interno del servidor" },
             { status: 500 }
         );
     }

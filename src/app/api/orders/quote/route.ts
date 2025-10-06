@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { sendEmail, emailTemplates } from "@/lib/email";
+import { generateQuoteCode } from "@/lib/counter";
 
 interface CartItem {
     id: string;
@@ -105,34 +106,8 @@ export async function POST(request: NextRequest) {
         const taxTotal = subtotal * taxRate;
         const grandTotal = subtotal + taxTotal;
 
-        // Generar código único para la cotización
-        let code: string;
-        let attempts = 0;
-        const maxAttempts = 10;
-        
-        do {
-            // Generar código basado en timestamp y número aleatorio para evitar duplicados
-            const timestamp = Date.now().toString().slice(-6);
-            const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-            code = `COT-${timestamp}${random}`;
-            
-            // Verificar si el código ya existe
-            const existingOrder = await prisma.order.findUnique({
-                where: { code },
-                select: { id: true }
-            });
-            
-            if (!existingOrder) {
-                break; // Código único encontrado
-            }
-            
-            attempts++;
-        } while (attempts < maxAttempts);
-        
-        if (attempts >= maxAttempts) {
-            // Fallback: usar UUID parcial si no se puede generar código único
-            code = `COT-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-        }
+        // Generar código secuencial para la cotización
+        const code = await generateQuoteCode();
 
         // Crear la orden como cotización
         const order = await prisma.order.create({

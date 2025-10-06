@@ -1,6 +1,6 @@
 "use client";
 
-import { getProductImageUrl } from "@/lib/utils/image";
+import { getProductImageUrl, sanitizeSkuForFilename } from "@/lib/utils/image";
 
 type ProductImageProps = {
     sku: string;
@@ -16,8 +16,18 @@ export default function ProductImage({ sku, alt, className }: ProductImageProps)
             className={className}
             onError={(e) => {
                 const el = e.currentTarget as HTMLImageElement;
-                el.onerror = null;
-                el.src = "/product-images/placeholder.png";
+                const currentSrc = el.src;
+                const sanitizedSku = sanitizeSkuForFilename(sku);
+
+                // Si falló PNG, intentar JPG
+                if (currentSrc.endsWith('.png') && sanitizedSku) {
+                    el.src = `/product-images/${sanitizedSku}.jpg`;
+                }
+                // Si falló JPG o no hay SKU, usar placeholder
+                else {
+                    el.onerror = null;
+                    el.src = "/product-images/placeholder.png";
+                }
             }}
         />
     );

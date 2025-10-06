@@ -18,12 +18,13 @@ export function sanitizeSkuForFilename(sku: string): string {
 
 /**
  * Genera la URL de la imagen de un producto basado en su SKU
+ * Intenta PNG primero, luego JPG, finalmente placeholder
  */
-export function getProductImageUrl(sku: string, extension: string = 'png'): string {
+export function getProductImageUrl(sku: string): string {
     const sanitizedSku = sanitizeSkuForFilename(sku);
-    return sanitizedSku 
-        ? `/product-images/${sanitizedSku}.${extension}`
-        : `/product-images/placeholder.${extension}`;
+    return sanitizedSku
+        ? `/product-images/${sanitizedSku}.png`
+        : `/product-images/placeholder.png`;
 }
 
 /**
