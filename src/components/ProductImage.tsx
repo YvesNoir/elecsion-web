@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { getProductImageUrl, sanitizeSkuForFilename } from "@/lib/utils/image";
+import { getProductImageUrls, sanitizeSkuForFilename } from "@/lib/utils/image";
 
 type ProductImageProps = {
     sku: string;
@@ -12,6 +12,9 @@ type ProductImageProps = {
 export default function ProductImage({ sku, alt, className }: ProductImageProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [hasError, setHasError] = useState(false);
+    const [currentUrlIndex, setCurrentUrlIndex] = useState(0);
+
+    const imageUrls = getProductImageUrls(sku);
 
     const handleImageLoad = () => {
         setIsLoading(false);
@@ -20,17 +23,15 @@ export default function ProductImage({ sku, alt, className }: ProductImageProps)
 
     const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
         const el = e.currentTarget as HTMLImageElement;
-        const currentSrc = el.src;
-        const sanitizedSku = sanitizeSkuForFilename(sku);
+        const nextIndex = currentUrlIndex + 1;
 
-        // Si falló PNG, intentar JPG
-        if (currentSrc.endsWith('.png') && sanitizedSku) {
-            el.src = `/product-images/${sanitizedSku}.jpg`;
-        }
-        // Si falló JPG o no hay SKU, usar placeholder
-        else {
+        if (nextIndex < imageUrls.length) {
+            // Intentar siguiente URL
+            setCurrentUrlIndex(nextIndex);
+            el.src = imageUrls[nextIndex];
+        } else {
+            // Agotamos todas las opciones
             el.onerror = null;
-            el.src = "/product-images/placeholder.png";
             setIsLoading(false);
             setHasError(true);
         }
@@ -46,7 +47,7 @@ export default function ProductImage({ sku, alt, className }: ProductImageProps)
             )}
 
             <img
-                src={getProductImageUrl(sku)}
+                src={imageUrls[currentUrlIndex]}
                 alt={alt || sku}
                 className={`w-full h-full object-cover transition-opacity duration-300 ${
                     isLoading ? 'opacity-0' : 'opacity-100'

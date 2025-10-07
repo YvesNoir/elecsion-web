@@ -2,8 +2,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
-import fs from "fs/promises";
-import path from "path";
+import { listObjects, generateProductImageKey } from "@/lib/aws-s3";
 
 export async function GET() {
     try {
@@ -42,15 +41,16 @@ export async function GET() {
             ]
         });
 
-        // Obtener lista de imágenes existentes
-        const imagesDir = path.join(process.cwd(), "public", "product-images");
+        // Obtener lista de imágenes existentes en S3
         let existingImages: string[] = [];
 
         try {
-            const files = await fs.readdir(imagesDir);
-            existingImages = files.map(file => file.toLowerCase());
+            // Listar todos los objetos en la carpeta 'products/'
+            const s3Objects = await listObjects('products/');
+            existingImages = s3Objects.map(key => key.replace('products/', '').toLowerCase());
+            console.log(`Found ${existingImages.length} images in S3`);
         } catch (error) {
-            console.error("Error reading images directory:", error);
+            console.error("Error listing S3 objects:", error);
             existingImages = [];
         }
 
