@@ -20,7 +20,7 @@ const slides: Slide[] = [
         description: "Descubre nuestra amplia gama de productos destacados a precios de promoción",
         buttonText: "Ver productos destacados",
         buttonLink: "/catalogo/destacados",
-        backgroundImage: "/hero-banner/hero-banner-1.jpg"
+        backgroundImage: "https://d3o6yucoo1tpxm.cloudfront.net/hero-banners/hero-banner-1.jpg"
     },
     {
         id: 2,
@@ -28,7 +28,7 @@ const slides: Slide[] = [
         description: "Productos confiables con los más exigentes estandares de calidad",
         buttonText: "Ver productos Trefilight",
         buttonLink: "/catalogo?brand=trefilight",
-        backgroundImage: "/hero-banner/trefilight-banner.jpg",
+        backgroundImage: "https://d3o6yucoo1tpxm.cloudfront.net/hero-banners/trefilight-banner.jpg",
         brandSlug: "sica"
     },
     {
@@ -37,7 +37,7 @@ const slides: Slide[] = [
         description: "Todo lo que necesitás en materiales eléctricos",
         buttonText: "Ver productos Sica",
         buttonLink: "/catalogo",
-        backgroundImage: "/hero-banner/sica-banner.jpg"
+        backgroundImage: "https://d3o6yucoo1tpxm.cloudfront.net/hero-banners/sica-banner.jpg"
     },
     {
         id: 4,
@@ -45,7 +45,7 @@ const slides: Slide[] = [
         description: "20 años de trayectoria y dedicación en herramientas de mano e industriales",
         buttonText: "Ver productos Rottweiller",
         buttonLink: "/catalogo?brand=tunisan",
-        backgroundImage: "/hero-banner/rottweiller-banner.jpg"
+        backgroundImage: "https://d3o6yucoo1tpxm.cloudfront.net/hero-banners/rottweiller-banner.jpg"
     }
 ];
 
