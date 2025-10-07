@@ -18,13 +18,24 @@ export function sanitizeSkuForFilename(sku: string): string {
 
 /**
  * Genera la URL de la imagen de un producto basado en su SKU
- * Intenta PNG primero, luego JPG, finalmente placeholder
+ * Intenta PNG primero desde S3/CloudFront, luego JPG, finalmente placeholder local
  */
 export function getProductImageUrl(sku: string): string {
     const sanitizedSku = sanitizeSkuForFilename(sku);
-    return sanitizedSku
-        ? `/product-images/${sanitizedSku}.png`
-        : `/product-images/placeholder.png`;
+    if (!sanitizedSku) {
+        return `/product-images/placeholder.png`;
+    }
+
+    // Si hay CloudFront URL configurada, usar CloudFront
+    const cloudFrontUrl = process.env.NEXT_PUBLIC_CLOUDFRONT_URL;
+    if (cloudFrontUrl) {
+        return `${cloudFrontUrl}/products/${sanitizedSku}.png`;
+    }
+
+    // Fallback a S3 directo
+    const s3Bucket = process.env.NEXT_PUBLIC_S3_BUCKET || 'elecsion-product-images';
+    const s3Region = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+    return `https://${s3Bucket}.s3.${s3Region}.amazonaws.com/products/${sanitizedSku}.png`;
 }
 
 /**
@@ -35,11 +46,30 @@ export function getProductImageUrls(sku: string): string[] {
     if (!sanitizedSku) {
         return ['/product-images/placeholder.png'];
     }
-    
+
+    const cloudFrontUrl = process.env.NEXT_PUBLIC_CLOUDFRONT_URL;
+    const s3Bucket = process.env.NEXT_PUBLIC_S3_BUCKET || 'elecsion-product-images';
+    const s3Region = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-2';
+
+    // Debug temporal
+    console.log('CloudFront URL:', cloudFrontUrl);
+    console.log('S3 Bucket:', s3Bucket);
+    console.log('S3 Region:', s3Region);
+
+    const baseUrl = cloudFrontUrl || `https://${s3Bucket}.s3.${s3Region}.amazonaws.com`;
+
+    console.log('Base URL:', baseUrl);
+    console.log('Final URLs for', sku, ':', [
+        `${baseUrl}/products/${sanitizedSku}.png`,
+        `${baseUrl}/products/${sanitizedSku}.jpg`,
+        `${baseUrl}/products/${sanitizedSku}.jpeg`,
+        '/product-images/placeholder.png'
+    ]);
+
     return [
-        `/product-images/${sanitizedSku}.png`,
-        `/product-images/${sanitizedSku}.jpg`,
-        `/product-images/${sanitizedSku}.jpeg`,
+        `${baseUrl}/products/${sanitizedSku}.png`,
+        `${baseUrl}/products/${sanitizedSku}.jpg`,
+        `${baseUrl}/products/${sanitizedSku}.jpeg`,
         '/product-images/placeholder.png'
     ];
 }

@@ -6,6 +6,7 @@ export async function GET() {
     try {
         const brands = await prisma.brand.findMany({
             where: {
+                isActive: true,  // Solo marcas activas
                 products: {
                     some: {
                         isActive: true,

@@ -29,7 +29,13 @@ export async function GET(request: NextRequest) {
 
         // Agregar filtro por marca si se especifica
         if (brandId) {
-            whereConditions.brandId = brandId;
+            // Si es un UUID/cuid (contiene caracteres que no serían un slug normal), usar brandId directamente
+            if (/^[a-z0-9]{25}$/.test(brandId) || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(brandId)) {
+                whereConditions.brandId = brandId;
+            } else {
+                // Si no es UUID, asumir que es slug
+                whereConditions.brand = { slug: brandId };
+            }
         }
 
         // Buscar productos usando Prisma ORM para mejor compatibilidad
