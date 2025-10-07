@@ -3,7 +3,7 @@
 
 import React, { useMemo, useState, useEffect } from "react";
 import { useCart } from "@/store/cart";
-import { getProductImageUrl } from "@/lib/utils/image";
+import { getProductImageUrls } from "@/lib/utils/image";
 
 type Props = {
     sku: string | null;
@@ -97,7 +97,8 @@ export default function ProductCardRow({
     const isUSD = currency?.toUpperCase() === 'USD';
 
     const normalizedSku = (sku ?? "").trim();
-    const imgSrc = getProductImageUrl(normalizedSku);
+    const imageUrls = getProductImageUrls(normalizedSku);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
     const dec = () => setQty((q) => Math.max(0, q - 1));
     const inc = () => setQty((q) => Math.min(9999, q + 1));
@@ -125,24 +126,15 @@ export default function ProductCardRow({
                     <div className="flex items-center gap-3 min-w-0">
                         <div className="h-14 w-14 flex-none overflow-hidden rounded-md ring-1 ring-gray-200 bg-gray-50">
                             <img
-                                src={imgSrc}
+                                src={imageUrls[currentImageIndex]}
                                 alt={normalizedSku || "Producto"}
                                 width={56}
                                 height={56}
                                 loading="lazy"
                                 className="h-14 w-14 object-cover"
-                                onError={(e) => {
-                                    const el = e.currentTarget as HTMLImageElement;
-                                    const currentSrc = el.src;
-
-                                    // Si falló PNG, intentar JPG
-                                    if (currentSrc.endsWith('.png') && normalizedSku) {
-                                        el.src = `/product-images/${normalizedSku.toLowerCase().replace(/[^a-z0-9-]/g, '')}.jpg`;
-                                    }
-                                    // Si falló JPG o no hay SKU, usar placeholder
-                                    else {
-                                        el.onerror = null;
-                                        el.src = "/product-images/placeholder.png";
+                                onError={() => {
+                                    if (currentImageIndex < imageUrls.length - 1) {
+                                        setCurrentImageIndex(prev => prev + 1);
                                     }
                                 }}
                             />
