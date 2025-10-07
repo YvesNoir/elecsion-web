@@ -9,6 +9,7 @@ import { Montserrat } from "next/font/google";
 import { CartProvider } from "@/store/cart";   // named import
 import CartDrawerWrapper from "@/components/cart/CartDrawerWrapper";
 import SessionProvider from "@/components/SessionProvider";
+import WhatsAppFloat from "@/components/WhatsAppFloat";
 
 const montserrat = Montserrat({
     subsets: ["latin"],
@@ -45,6 +46,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 </main>
 
                 <Footer />
+
+                {/* Botón flotante de WhatsApp */}
+                <WhatsAppFloat />
             </CartProvider>
         </SessionProvider>
         </body>

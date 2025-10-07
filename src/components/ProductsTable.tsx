@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import ExcelImporter from './ExcelImporter';
 import ProductStatusSelect from './ProductStatusSelect';
@@ -28,19 +28,35 @@ type ProductsTableProps = {
     allBrands?: { name: string; slug: string }[];
     selectedBrandSlug?: string;
     totalCount?: number;
+    searchTerm?: string;
 };
 
-export default function ProductsTable({ products, onImportSuccess, allBrands, selectedBrandSlug, totalCount }: ProductsTableProps) {
+export default function ProductsTable({ products, onImportSuccess, allBrands, selectedBrandSlug, totalCount, searchTerm: initialSearchTerm }: ProductsTableProps) {
     const router = useRouter();
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchTerm, setSearchTerm] = useState(initialSearchTerm || '');
     const [selectedBrand, setSelectedBrand] = useState('');
     const [showImporter, setShowImporter] = useState(false);
     const [localProducts, setLocalProducts] = useState(products);
+    const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Sincronizar productos locales cuando cambien las props
     useEffect(() => {
         setLocalProducts(products);
     }, [products]);
+
+    // Sincronizar searchTerm cuando cambie el prop
+    useEffect(() => {
+        setSearchTerm(initialSearchTerm || '');
+    }, [initialSearchTerm]);
+
+    // Cleanup timeout al desmontar el componente
+    useEffect(() => {
+        return () => {
+            if (searchTimeoutRef.current) {
+                clearTimeout(searchTimeoutRef.current);
+            }
+        };
+    }, []);
 
     // Función para manejar el cambio de estado del producto
     const handleStatusChange = (productId: string, newStatus: boolean) => {
@@ -129,6 +145,32 @@ export default function ProductsTable({ products, onImportSuccess, allBrands, se
         }
     };
 
+    // Función para manejar la búsqueda del servidor con debounce
+    const handleSearchChange = (searchValue: string) => {
+        setSearchTerm(searchValue);
+
+        // Cancelar timeout anterior si existe
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current);
+        }
+
+        // Debounce de 500ms
+        searchTimeoutRef.current = setTimeout(() => {
+            const params = new URLSearchParams();
+
+            if (searchValue.trim()) {
+                params.set('buscar', searchValue.trim());
+            }
+
+            if (selectedBrandSlug) {
+                params.set('marca', selectedBrandSlug);
+            }
+
+            const newUrl = `/mi-cuenta/productos${params.toString() ? '?' + params.toString() : ''}`;
+            router.push(newUrl);
+        }, 500);
+    };
+
     // Establecer marca seleccionada al cargar basándose en el slug
     useEffect(() => {
         if (selectedBrandSlug && uniqueBrands.length > 0) {
@@ -144,38 +186,8 @@ export default function ProductsTable({ products, onImportSuccess, allBrands, se
         }
     }, [selectedBrandSlug, uniqueBrands]);
 
-    const filteredProducts = useMemo(() => {
-        // Si hay selectedBrandSlug, los productos ya vienen filtrados del servidor
-        // Solo aplicamos filtro de búsqueda por texto
-        if (selectedBrandSlug) {
-            return localProducts.filter(product => {
-                if (!searchTerm.trim()) return true;
-
-                const term = searchTerm.toLowerCase().trim();
-                const sku = (product.sku || '').toLowerCase();
-                const name = product.name.toLowerCase();
-                const brand = (product.brand?.name || '').toLowerCase();
-                return sku.includes(term) || name.includes(term) || brand.includes(term);
-            });
-        }
-
-        // Si no hay selectedBrandSlug, aplicamos ambos filtros
-        return localProducts.filter(product => {
-            // Filtro por texto
-            const matchesSearch = !searchTerm.trim() || (() => {
-                const term = searchTerm.toLowerCase().trim();
-                const sku = (product.sku || '').toLowerCase();
-                const name = product.name.toLowerCase();
-                const brand = (product.brand?.name || '').toLowerCase();
-                return sku.includes(term) || name.includes(term) || brand.includes(term);
-            })();
-
-            // Filtro por marca
-            const matchesBrand = !selectedBrand || product.brand?.name === selectedBrand;
-
-            return matchesSearch && matchesBrand;
-        });
-    }, [localProducts, searchTerm, selectedBrand, selectedBrandSlug]);
+    // Los productos ya vienen filtrados del servidor, no necesitamos filtrado local
+    const filteredProducts = localProducts;
 
     const handleImport = async (importData: any[]) => {
         try {
@@ -212,7 +224,7 @@ export default function ProductsTable({ products, onImportSuccess, allBrands, se
                         type="text"
                         placeholder="Buscar por SKU, producto o marca..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e) => handleSearchChange(e.target.value)}
                         className="w-full px-4 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#384A93] focus:border-transparent text-sm"
                     />
                 </div>
@@ -231,7 +243,7 @@ export default function ProductsTable({ products, onImportSuccess, allBrands, se
                     </select>
                 </div>
                 <div className="text-sm text-[#646464] whitespace-nowrap">
-                    {filteredProducts.length} de {totalCount || products.length} productos
+                    {products.length} de {totalCount || products.length} productos
                 </div>
                 <button
                     onClick={() => setShowImporter(true)}
