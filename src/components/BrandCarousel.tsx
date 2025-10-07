@@ -19,87 +19,89 @@ type BrandCarouselProps = {
     }>;
 };
 
-// Mapeo de logos disponibles
+// Mapeo de logos disponibles con URLs de CloudFront
+const CLOUDFRONT_URL = "https://d3o6yucoo1tpxm.cloudfront.net";
+
 const brandLogos: Record<string, { logo: string; logoGrey: string }> = {
     sica: {
-        logo: "/brand-logos/sica.jpg",
-        logoGrey: "/brand-logos/sica-grey.png"
+        logo: `${CLOUDFRONT_URL}/brand-logos/sica.jpg`,
+        logoGrey: `${CLOUDFRONT_URL}/brand-logos/sica-grey.png`
     },
     exult: {
-        logo: "/brand-logos/exultt.jpg",
-        logoGrey: "/brand-logos/exult-grey.png"
+        logo: `${CLOUDFRONT_URL}/brand-logos/exultt.jpg`,
+        logoGrey: `${CLOUDFRONT_URL}/brand-logos/exult-grey.png`
     },
     flexivolt: {
-        logo: "/brand-logos/flexivolt.jpg",
-        logoGrey: "/brand-logos/flexivolt-grey.png"
+        logo: `${CLOUDFRONT_URL}/brand-logos/flexivolt.jpg`,
+        logoGrey: `${CLOUDFRONT_URL}/brand-logos/flexivolt-grey.png`
     },
     huferjo: {
-        logo: "/brand-logos/huferjo.png",
-        logoGrey: "/brand-logos/huferjo-grey.png"
+        logo: `${CLOUDFRONT_URL}/brand-logos/huferjo.png`,
+        logoGrey: `${CLOUDFRONT_URL}/brand-logos/huferjo-grey.png`
     },
     jeluz: {
-        logo: "/brand-logos/jeluz.jpg",
-        logoGrey: "/brand-logos/jeluz-grey.png"
+        logo: `${CLOUDFRONT_URL}/brand-logos/jeluz.jpg`,
+        logoGrey: `${CLOUDFRONT_URL}/brand-logos/jeluz-grey.png`
     },
     kalop: {
-        logo: "/brand-logos/kalop.jpg",
-        logoGrey: "/brand-logos/kalop-grey.png"
+        logo: `${CLOUDFRONT_URL}/brand-logos/kalop.jpg`,
+        logoGrey: `${CLOUDFRONT_URL}/brand-logos/kalop-grey.png`
     },
     macroled: {
-        logo: "/brand-logos/macroled.png",
-        logoGrey: "/brand-logos/macroled-grey.png"
+        logo: `${CLOUDFRONT_URL}/brand-logos/macroled.png`,
+        logoGrey: `${CLOUDFRONT_URL}/brand-logos/macroled-grey.png`
     },
     mota: {
-        logo: "/brand-logos/mota.png",
-        logoGrey: "/brand-logos/mota-grey.png"
+        logo: `${CLOUDFRONT_URL}/brand-logos/mota.png`,
+        logoGrey: `${CLOUDFRONT_URL}/brand-logos/mota-grey.png`
     },
     richi: {
-        logo: "/brand-logos/richi.png",
-        logoGrey: "/brand-logos/richi-grey.png"
+        logo: `${CLOUDFRONT_URL}/brand-logos/richi.png`,
+        logoGrey: `${CLOUDFRONT_URL}/brand-logos/richi-grey.png`
     },
     rottweiler: {
-        logo: "/brand-logos/rottweiler.png",
-        logoGrey: "/brand-logos/rottweiler-grey.png"
+        logo: `${CLOUDFRONT_URL}/brand-logos/rottweiler.png`,
+        logoGrey: `${CLOUDFRONT_URL}/brand-logos/rottweiler-grey.png`
     },
     rio: {
-        logo: "/brand-logos/rio.jpg",
-        logoGrey: "/brand-logos/rioflex-grey.png"
+        logo: `${CLOUDFRONT_URL}/brand-logos/rio.jpg`,
+        logoGrey: `${CLOUDFRONT_URL}/brand-logos/rioflex-grey.png`
     },
     rioflex: {
-        logo: "/brand-logos/rioflex-grey.png", // Using grey as fallback since no color version
-        logoGrey: "/brand-logos/rioflex-grey.png"
+        logo: `${CLOUDFRONT_URL}/brand-logos/rioflex-grey.png`, // Using grey as fallback since no color version
+        logoGrey: `${CLOUDFRONT_URL}/brand-logos/rioflex-grey.png`
     },
     sixelectric: {
-        logo: "/brand-logos/sixelectric.jpg",
-        logoGrey: "/brand-logos/sixelectric-grey.png"
+        logo: `${CLOUDFRONT_URL}/brand-logos/sixelectric.jpg`,
+        logoGrey: `${CLOUDFRONT_URL}/brand-logos/sixelectric-grey.png`
     },
     starbox: {
-        logo: "/brand-logos/starbox.jpg",
-        logoGrey: "/brand-logos/starbox-grey.png"
+        logo: `${CLOUDFRONT_URL}/brand-logos/starbox.jpg`,
+        logoGrey: `${CLOUDFRONT_URL}/brand-logos/starbox-grey.png`
     },
     taad: {
-        logo: "/brand-logos/taad.png",
-        logoGrey: "/brand-logos/taad-grey.png"
+        logo: `${CLOUDFRONT_URL}/brand-logos/taad.png`,
+        logoGrey: `${CLOUDFRONT_URL}/brand-logos/taad-grey.png`
     },
     tacsa: {
-        logo: "/brand-logos/tacsa.jpg",
-        logoGrey: "/brand-logos/tacsa-grey.png"
+        logo: `${CLOUDFRONT_URL}/brand-logos/tacsa.jpg`,
+        logoGrey: `${CLOUDFRONT_URL}/brand-logos/tacsa-grey.png`
     },
     tecnocom: {
-        logo: "/brand-logos/tecnocom.jpg",
-        logoGrey: "/brand-logos/tecnocom-grey.png"
+        logo: `${CLOUDFRONT_URL}/brand-logos/tecnocom.jpg`,
+        logoGrey: `${CLOUDFRONT_URL}/brand-logos/tecnocom-grey.png`
     },
     trefilcon: {
-        logo: "/brand-logos/trefilcon.jpg",
-        logoGrey: "/brand-logos/trefilcon-grey.png"
+        logo: `${CLOUDFRONT_URL}/brand-logos/trefilcon.jpg`,
+        logoGrey: `${CLOUDFRONT_URL}/brand-logos/trefilcon-grey.png`
     },
     trefilight: {
-        logo: "/brand-logos/trefilight.jpg",
-        logoGrey: "/brand-logos/trefilight-grey.png"
+        logo: `${CLOUDFRONT_URL}/brand-logos/trefilight.jpg`,
+        logoGrey: `${CLOUDFRONT_URL}/brand-logos/trefilight-grey.png`
     },
     yarlux: {
-        logo: "/brand-logos/yarlux.jpg",
-        logoGrey: "/brand-logos/yarlux-grey.png"
+        logo: `${CLOUDFRONT_URL}/brand-logos/yarlux.jpg`,
+        logoGrey: `${CLOUDFRONT_URL}/brand-logos/yarlux-grey.png`
     }
 };
 
@@ -188,14 +190,14 @@ export default function BrandCarousel({ brands }: BrandCarouselProps) {
                                             <div className="relative bg-white rounded-lg p-6 h-24 flex items-center justify-center transition-all duration-300">
                                                 {/* Grey Logo (Default) */}
                                                 <img
-                                                    src={logos?.logoGrey || "/brand-logos/sica-grey.png"}
+                                                    src={logos?.logoGrey || `${CLOUDFRONT_URL}/brand-logos/sica-grey.png`}
                                                     alt={brand.name}
                                                     className="max-h-12 max-w-full object-contain opacity-60 group-hover:opacity-0 transition-opacity duration-300"
                                                 />
                                                 
                                                 {/* Color Logo (Hover) */}
                                                 <img
-                                                    src={logos?.logo || "/brand-logos/sica.jpg"}
+                                                    src={logos?.logo || `${CLOUDFRONT_URL}/brand-logos/sica.jpg`}
                                                     alt={brand.name}
                                                     className="absolute max-h-12 max-w-full object-contain opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                                                 />
