@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import ImageUploader from "@/components/ImageUploader";
+import ImageUploaderS3 from "@/components/ImageUploaderS3";
+import ImageMigration from "@/components/admin/ImageMigration";
 
 type Product = {
     id: string;
@@ -94,6 +95,9 @@ export default function FixImagesClient() {
 
     return (
         <div className="space-y-6">
+            {/* Migración masiva */}
+            <ImageMigration />
+
             {/* Estadísticas */}
             <div className="bg-white border border-[#E5E5E5] p-6">
                 <h2 className="text-lg font-medium text-[#1C1C1C] mb-4">
@@ -212,7 +216,7 @@ export default function FixImagesClient() {
                             </div>
                         </div>
                         <div className="p-4">
-                            <ImageUploader
+                            <ImageUploaderS3
                                 productSku={selectedProduct.sku!}
                                 onUploadSuccess={handleUploadSuccess}
                             />
