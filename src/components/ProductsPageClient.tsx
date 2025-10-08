@@ -26,6 +26,7 @@ type ProductsPageClientProps = {
     totalCount: number;
     allBrands: { name: string; slug: string }[];
     selectedBrandSlug?: string;
+    searchTerm?: string;
 };
 
 export default function ProductsPageClient({
@@ -34,7 +35,8 @@ export default function ProductsPageClient({
     totalPages,
     totalCount,
     allBrands,
-    selectedBrandSlug
+    selectedBrandSlug,
+    searchTerm
 }: ProductsPageClientProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -91,6 +93,7 @@ export default function ProductsPageClient({
                 allBrands={allBrands}
                 selectedBrandSlug={selectedBrandSlug}
                 totalCount={totalCount}
+                searchTerm={searchTerm}
             />
 
             {/* Controles de paginación */}

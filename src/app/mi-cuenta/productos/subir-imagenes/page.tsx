@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/session';
 import Link from 'next/link';
 import AccountSidebar from '@/components/AccountSidebar';
-import ImageUploader from '@/components/ImageUploader';
+import ImageUploaderBulk from '@/components/ImageUploaderBulk';
 
 export default async function SubirImagenesPage() {
     const session = await getSession();
@@ -61,7 +61,7 @@ export default async function SubirImagenesPage() {
                         </div>
 
                         <div className="p-6">
-                            <ImageUploader />
+                            <ImageUploaderBulk />
                         </div>
                     </div>
                 </div>

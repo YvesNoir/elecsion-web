@@ -4,10 +4,12 @@ import { prisma } from '@/lib/db';
 import Link from 'next/link';
 import AccountSidebar from '@/components/AccountSidebar';
 import ProductsPageClient from '@/components/ProductsPageClient';
+import StockUpdaterWrapper from '@/components/StockUpdaterWrapper';
 
 type SearchParams = {
     page?: string;
     marca?: string;
+    buscar?: string;
 }
 
 export default async function ProductosPage({
@@ -24,6 +26,7 @@ export default async function ProductosPage({
     const resolvedSearchParams = await searchParams;
     const page = Number(resolvedSearchParams.page) || 1;
     const brandFilter = resolvedSearchParams.marca;
+    const searchFilter = resolvedSearchParams.buscar;
     const limit = 30;
     const skip = (page - 1) * limit;
 
@@ -36,6 +39,31 @@ export default async function ProductosPage({
         whereCondition.brand = {
             slug: brandFilter
         };
+    }
+
+    if (searchFilter) {
+        whereCondition.OR = [
+            {
+                sku: {
+                    contains: searchFilter,
+                    mode: 'insensitive'
+                }
+            },
+            {
+                name: {
+                    contains: searchFilter,
+                    mode: 'insensitive'
+                }
+            },
+            {
+                brand: {
+                    name: {
+                        contains: searchFilter,
+                        mode: 'insensitive'
+                    }
+                }
+            }
+        ];
     }
 
     // Obtener productos paginados y todas las marcas
@@ -121,15 +149,18 @@ export default async function ProductosPage({
                                         Gestión de productos - Total: {totalCount} productos (Página {page} de {totalPages})
                                     </p>
                                 </div>
-                                <Link
-                                    href="/mi-cuenta/productos/subir-imagenes"
-                                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#384A93] rounded-md hover:bg-[#2e3d7a] transition-colors"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                    </svg>
-                                    Subir Imágenes
-                                </Link>
+                                <div className="flex items-center gap-3">
+                                    <StockUpdaterWrapper />
+                                    <Link
+                                        href="/mi-cuenta/productos/subir-imagenes"
+                                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#384A93] rounded-md hover:bg-[#2e3d7a] transition-colors"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                        </svg>
+                                        Subir Imágenes
+                                    </Link>
+                                </div>
                             </div>
                         </div>
 
@@ -141,6 +172,7 @@ export default async function ProductosPage({
                                 totalCount={totalCount}
                                 allBrands={allBrands}
                                 selectedBrandSlug={brandFilter}
+                                searchTerm={searchFilter}
                             />
                         </div>
                     </div>
