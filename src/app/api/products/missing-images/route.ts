@@ -58,19 +58,54 @@ export async function GET() {
         const productsWithoutImages = products.filter(product => {
             if (!product.sku) return true; // Si no tiene SKU, no puede tener imagen
 
-            const skuLower = product.sku.toLowerCase();
-            const hasPNG = existingImages.includes(`${skuLower}.png`);
-            const hasJPG = existingImages.includes(`${skuLower}.jpg`);
+            // Probar ambas variantes de limpieza de SKU
 
-            return !hasPNG && !hasJPG;
+            // Variante 1: generateProductImageKey (sin guiones)
+            const cleanSkuNoHyphens = product.sku.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+            // Variante 2: sanitizeSkuForFilename (con guiones)
+            const cleanSkuWithHyphens = product.sku
+                .trim()
+                .toLowerCase()
+                .replace(/\//g, '')
+                .replace(/[\\:*?"<>|\s]/g, '')
+                .replace(/[^a-z0-9-]/g, '');
+
+            // Buscar con ambas variantes
+            const hasPNG_NoHyphens = existingImages.includes(`${cleanSkuNoHyphens}.png`);
+            const hasJPG_NoHyphens = existingImages.includes(`${cleanSkuNoHyphens}.jpg`);
+
+            const hasPNG_WithHyphens = existingImages.includes(`${cleanSkuWithHyphens}.png`);
+            const hasJPG_WithHyphens = existingImages.includes(`${cleanSkuWithHyphens}.jpg`);
+
+            const hasImage = hasPNG_NoHyphens || hasJPG_NoHyphens || hasPNG_WithHyphens || hasJPG_WithHyphens;
+
+
+            return !hasImage;
         });
+
+        // Agrupar productos sin imágenes por marca
+        const brandCounts = productsWithoutImages.reduce((acc, product) => {
+            const brandName = product.brand?.name || 'Sin marca';
+            if (!acc[brandName]) {
+                acc[brandName] = 0;
+            }
+            acc[brandName]++;
+            return acc;
+        }, {} as Record<string, number>);
+
+        // Convertir a array y ordenar por cantidad descendente
+        const brandStats = Object.entries(brandCounts)
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count);
 
         return NextResponse.json({
             success: true,
             totalProducts: products.length,
             productsWithImages: products.length - productsWithoutImages.length,
             productsWithoutImages: productsWithoutImages.length,
-            products: productsWithoutImages
+            products: productsWithoutImages,
+            brandStats
         });
 
     } catch (error) {

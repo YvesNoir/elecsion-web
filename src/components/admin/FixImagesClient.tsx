@@ -13,12 +13,18 @@ type Product = {
     } | null;
 };
 
+type BrandStat = {
+    name: string;
+    count: number;
+};
+
 type MissingImagesData = {
     success: boolean;
     totalProducts: number;
     productsWithImages: number;
     productsWithoutImages: number;
     products: Product[];
+    brandStats: BrandStat[];
 };
 
 export default function FixImagesClient() {
@@ -27,6 +33,7 @@ export default function FixImagesClient() {
     const [error, setError] = useState<string | null>(null);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [showUploader, setShowUploader] = useState(false);
+    const [selectedBrand, setSelectedBrand] = useState<string>("all");
 
     const fetchData = async () => {
         try {
@@ -61,6 +68,13 @@ export default function FixImagesClient() {
         setSelectedProduct(product);
         setShowUploader(true);
     };
+
+    // Filtrar productos por marca seleccionada
+    const filteredProducts = data?.products.filter(product => {
+        if (selectedBrand === "all") return true;
+        const productBrand = product.brand?.name || 'Sin marca';
+        return productBrand === selectedBrand;
+    }) || [];
 
     if (loading) {
         return (
@@ -131,17 +145,113 @@ export default function FixImagesClient() {
                 </div>
             </div>
 
+            {/* Top marcas sin imágenes */}
+            {data.brandStats.length > 0 && (
+                <div className="bg-white border border-[#E5E5E5] p-6">
+                    <h2 className="text-lg font-medium text-[#1C1C1C] mb-4">
+                        Marcas con Más Productos sin Imágenes
+                    </h2>
+                    <div className="mb-3">
+                        <button
+                            onClick={() => setSelectedBrand("all")}
+                            className={`px-4 py-2 rounded-lg border transition-all ${
+                                selectedBrand === "all"
+                                    ? 'border-[#384A93] bg-[#384A93] text-white'
+                                    : 'border-[#E5E5E5] hover:border-[#384A93] hover:bg-gray-50'
+                            }`}
+                        >
+                            <span className="font-medium text-sm">Todas las marcas</span>
+                            <span className={`text-xs ml-2 ${
+                                selectedBrand === "all" ? 'text-white' : 'text-[#646464]'
+                            }`}>
+                                ({data.productsWithoutImages})
+                            </span>
+                        </button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                        {data.brandStats.slice(0, 8).map((brand) => (
+                            <button
+                                key={brand.name}
+                                onClick={() => setSelectedBrand(brand.name)}
+                                className={`p-3 rounded-lg border transition-all ${
+                                    selectedBrand === brand.name
+                                        ? 'border-[#384A93] bg-[#384A93] text-white'
+                                        : 'border-[#E5E5E5] hover:border-[#384A93] hover:bg-gray-50'
+                                }`}
+                            >
+                                <div className="font-medium text-sm truncate" title={brand.name}>
+                                    {brand.name}
+                                </div>
+                                <div className={`text-xs mt-1 ${
+                                    selectedBrand === brand.name ? 'text-white' : 'text-[#646464]'
+                                }`}>
+                                    {brand.count} sin imagen{brand.count !== 1 ? 's' : ''}
+                                </div>
+                            </button>
+                        ))}
+                        {data.brandStats.length > 8 && (
+                            <div className="p-3 rounded-lg border border-dashed border-[#E5E5E5] flex items-center justify-center text-[#646464] text-sm">
+                                +{data.brandStats.length - 8} marcas más
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Filtro por marca */}
+            <div className="bg-white border border-[#E5E5E5] p-6">
+                <h2 className="text-lg font-medium text-[#1C1C1C] mb-4">
+                    Filtrar por Marca
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label htmlFor="brand-select" className="block text-sm font-medium text-[#646464] mb-2">
+                            Seleccionar marca:
+                        </label>
+                        <select
+                            id="brand-select"
+                            value={selectedBrand}
+                            onChange={(e) => setSelectedBrand(e.target.value)}
+                            className="w-full px-3 py-2 border border-[#E5E5E5] rounded-md focus:outline-none focus:ring-2 focus:ring-[#384A93] focus:border-transparent"
+                        >
+                            <option value="all">Todas las marcas ({data.productsWithoutImages})</option>
+                            {data.brandStats.map((brand) => (
+                                <option key={brand.name} value={brand.name}>
+                                    {brand.name} ({brand.count})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="flex items-end">
+                        <div className="text-sm text-[#646464]">
+                            <div className="font-medium">Mostrando:</div>
+                            <div className="text-[#384A93] font-semibold">
+                                {filteredProducts.length} producto(s) sin imagen
+                                {selectedBrand !== "all" && ` de ${selectedBrand}`}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {/* Lista de productos sin imágenes */}
             <div className="bg-white border border-[#E5E5E5] overflow-hidden">
                 <div className="p-4 border-b border-[#E5E5E5]">
                     <h2 className="text-lg font-medium text-[#1C1C1C]">
-                        Productos sin Imágenes ({data.productsWithoutImages})
+                        Productos sin Imágenes
+                        {selectedBrand === "all"
+                            ? ` (${data.productsWithoutImages} total)`
+                            : ` de ${selectedBrand} (${filteredProducts.length})`
+                        }
                     </h2>
                 </div>
 
-                {data.products.length === 0 ? (
+                {filteredProducts.length === 0 ? (
                     <div className="p-8 text-center text-green-600">
-                        🎉 ¡Excelente! Todos los productos tienen imágenes.
+                        {selectedBrand === "all"
+                            ? "🎉 ¡Excelente! Todos los productos tienen imágenes."
+                            : `🎉 ¡Todos los productos de ${selectedBrand} tienen imágenes!`
+                        }
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
@@ -163,7 +273,7 @@ export default function FixImagesClient() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#E5E5E5]">
-                                {data.products.map((product) => (
+                                {filteredProducts.map((product) => (
                                     <tr key={product.id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-4 py-3 text-sm font-medium text-[#1C1C1C]">
                                             {product.sku || "—"}
