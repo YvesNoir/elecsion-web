@@ -162,7 +162,6 @@ export default function CompletedOrdersPage() {
         `).join('');
 
         const trackingNumber = `AR${order.id.slice(-6).toUpperCase()}`;
-        const deliveryDate = formatDate(order.updatedAt);
 
         return `
             <!DOCTYPE html>
@@ -199,7 +198,6 @@ export default function CompletedOrdersPage() {
                 <div class="order-info">
                     <div><strong>Código:</strong> ${order.code}</div>
                     <div><strong>Fecha de Pedido:</strong> ${formatDate(order.submittedAt || order.createdAt)}</div>
-                    <div><strong>Fecha de Entrega:</strong> ${deliveryDate}</div>
                     <div><strong>Cliente:</strong> ${order.clientUser?.name || order.quoteName || 'Cliente'}</div>
                     <div><strong>Email:</strong> ${order.clientUser?.email || order.quoteEmail}</div>
                     ${order.clientUser?.phone || order.quotePhone ? `<div><strong>Teléfono:</strong> ${order.clientUser?.phone || order.quotePhone}</div>` : ''}
@@ -300,11 +298,6 @@ export default function CompletedOrdersPage() {
                order.status === 'SHIPPED' ? 'Enviado' :
                order.status === 'FULFILLED' ? 'Procesado' : 'Confirmado',
         trackingNumber: `AR${order.id.slice(-6).toUpperCase()}`,
-        deliveryDate: new Date(order.updatedAt).toLocaleDateString('es-AR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: '2-digit'
-        }),
         items: order.items.map(item => ({
             sku: item.sku || 'N/A',
             name: item.name,
@@ -389,17 +382,11 @@ export default function CompletedOrdersPage() {
                                                 </div>
                                             </div>
 
-                                            {/* Información de envío */}
+                                            {/* Información de tracking */}
                                             <div className="px-4 py-3 bg-[#F5F5F7] border-b border-[#B5B5B5]/40">
-                                                <div className="flex items-center justify-between text-sm">
-                                                    <div>
-                                                        <span className="text-[#646464]">Entregado el:</span>
-                                                        <span className="ml-2 font-medium text-[#1C1C1C]">{order.deliveryDate}</span>
-                                                    </div>
-                                                    <div>
-                                                        <span className="text-[#646464]">Tracking:</span>
-                                                        <span className="ml-2 font-mono text-[#384A93]">{order.trackingNumber}</span>
-                                                    </div>
+                                                <div className="text-sm">
+                                                    <span className="text-[#646464]">Tracking:</span>
+                                                    <span className="ml-2 font-mono text-[#384A93]">{order.trackingNumber}</span>
                                                 </div>
                                             </div>
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useCart } from "@/store/cart";
+import { useExchangeRate } from "@/hooks/useExchangeRate";
 import ProductImage from "@/components/ProductImage";
 
 type ProductCardGridProps = {
@@ -30,6 +31,7 @@ export default function ProductCardGrid({
 }: ProductCardGridProps) {
     const [qty, setQty] = useState(0);
     const { addItem } = useCart();
+    const { getCartPrice } = useExchangeRate();
 
     const normalizedSku = sku || "N/A";
 
@@ -38,14 +40,16 @@ export default function ProductCardGrid({
             alert('Por favor, ingresa una cantidad mayor a 0');
             return;
         }
-        
+
+        const cartPrice = getCartPrice(Number(priceBase), currency);
+
         addItem(
             {
                 id: normalizedSku,
                 sku: normalizedSku,
                 name,
-                price: Number(priceBase),
-                currency,
+                price: cartPrice.price,
+                currency: cartPrice.currency,
                 unit: unit ?? undefined,
             },
             qty
@@ -53,7 +57,7 @@ export default function ProductCardGrid({
 
         // Abrir el drawer del carrito automáticamente
         window.dispatchEvent(new CustomEvent("cart:open"));
-        
+
         // Opcional: resetear la cantidad después de agregar
         setQty(0);
     };

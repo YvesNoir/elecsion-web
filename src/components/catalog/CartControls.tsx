@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useCart } from '@/store/cart';
+import { useExchangeRate } from '@/hooks/useExchangeRate';
 
 function formatMoney(value: number, currency: string) {
     const cur = currency?.toUpperCase() === 'USD' ? 'USD' : 'ARS';
@@ -23,16 +24,20 @@ export default function CartControls({
                                      }: Props) {
     const [qty, setQty] = React.useState<number>(0);
     const { addItem } = useCart();
+    const { convertToARS, getCartPrice } = useExchangeRate();
 
     const onAdd = () => {
         if (!sku || qty <= 0) return;
+
+        const cartPrice = getCartPrice(Number(priceBase) || 0, currency);
+
         addItem(
             {
                 sku,
                 name,
                 unit: unit ?? undefined,
-                price: Number(priceBase) || 0,
-                currency,
+                price: cartPrice.price, // Siempre en ARS
+                currency: cartPrice.currency, // Siempre ARS
                 imageUrl,
             },
             qty
@@ -44,7 +49,8 @@ export default function CartControls({
     const dec = () => setQty(q => Math.max(0, q - 1));
     const inc = () => setQty(q => q + 1);
 
-    const total = (Number(priceBase) || 0) * qty;
+    // Calcular total en ARS (para mostrar)
+    const total = convertToARS(Number(priceBase) || 0, currency) * qty;
 
     return (
         <div className={className}>
@@ -60,7 +66,7 @@ export default function CartControls({
             {qty > 0 && (
                 <div className="mt-3 rounded-md bg-[#F7F7F7] px-3 py-2">
                     <div className="text-xs text-[#646464]">
-                        Valor total: <span className="font-medium text-[#1C1C1C]">{formatMoney(total, currency)}</span> <span className="text-[#9a9a9a]">+ IVA</span>
+                        Valor total: <span className="font-medium text-[#1C1C1C]">{formatMoney(total, 'ARS')}</span> <span className="text-[#9a9a9a]">+ IVA</span>
                     </div>
                     <button
                         onClick={onAdd}

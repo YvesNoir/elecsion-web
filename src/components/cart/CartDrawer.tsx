@@ -4,10 +4,88 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useCart } from "@/store/cart";
+import { getProductImageUrls } from "@/lib/utils/image";
 
 function money(n: number, currency = "ARS") {
     return new Intl.NumberFormat("es-AR", { style: "currency", currency })
         .format(Number(n || 0));
+}
+
+function CartLineItem({ item, currency, isLoggedIn, setQty, removeItem }: {
+    item: any;
+    currency: string;
+    isLoggedIn: boolean;
+    setQty: (sku: string, qty: number) => void;
+    removeItem: (sku: string) => void;
+}) {
+    const sku = String(item?.sku ?? "");
+    const qty = Number(item?.qty ?? item?.quantity ?? 0);
+    const price = Number(item?.price ?? 0);
+    const lineTotal = price * qty;
+    const imageUrls = getProductImageUrls(sku);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+    return (
+        <li className="flex gap-3 rounded-md border border-[#384a93]/20 p-3">
+            <div className="self-stretch w-14 flex-none overflow-hidden rounded bg-gray-50 ring-1 ring-[#384a93]/30">
+                <img
+                    src={imageUrls[currentImageIndex]}
+                    alt={sku}
+                    className="h-full w-full object-cover object-center"
+                    onError={() => {
+                        if (currentImageIndex < imageUrls.length - 1) {
+                            setCurrentImageIndex(prev => prev + 1);
+                        }
+                    }}
+                />
+            </div>
+
+            <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium truncate">{sku}</div>
+                <div className="text-xs truncate text-[#646464]">
+                    {item?.name ?? ""}
+                </div>
+
+                <div className="mt-2 flex items-center justify-between">
+                    <div className="inline-flex items-center rounded border border-[#384a93]/30 overflow-hidden">
+                        <button
+                            className="h-7 w-7 text-sm hover:bg-[#384a93]/10 text-[#384a93]"
+                            onClick={() => setQty(sku, qty - 1)}
+                            aria-label="Restar"
+                        >
+                            –
+                        </button>
+                        <div className="h-7 w-9 text-center text-sm leading-7">
+                            {qty}
+                        </div>
+                        <button
+                            className="h-7 w-7 text-sm hover:bg-[#384a93]/10 text-[#384a93]"
+                            onClick={() => setQty(sku, qty + 1)}
+                            aria-label="Sumar"
+                        >
+                            +
+                        </button>
+                    </div>
+                    <div className="text-sm font-medium">
+                        {isLoggedIn ? (
+                            money(lineTotal, item?.currency ?? currency)
+                        ) : (
+                            <span className="text-[#384A93]">A consultar</span>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            <button
+                className="self-start rounded p-1.5 text-[#1C1C1C] hover:text-red-600 hover:bg-red-50"
+                onClick={() => removeItem(sku)}
+                aria-label="Eliminar"
+                title="Eliminar"
+            >
+                🗑️
+            </button>
+        </li>
+    );
 }
 
 type CartDrawerProps = {
@@ -121,75 +199,7 @@ export default function CartDrawer({ isLoggedIn }: CartDrawerProps) {
                     </p>
                 ) : (
                     <ul className="space-y-3">
-                        {lines.map((it: any) => {
-                            const sku = String(it?.sku ?? "");
-                            const qty = Number(it?.qty ?? it?.quantity ?? 0);
-                            const price = Number(it?.price ?? 0);
-                            const lineTotal = price * qty;
-                            const img = `/product-images/${sku}.png`;
-
-                            return (
-                                <li key={sku} className="flex gap-3 rounded-md border border-[#384a93]/20 p-3">
-                                    <div className="self-stretch w-14 flex-none overflow-hidden rounded bg-gray-50 ring-1 ring-[#384a93]/30">
-                                        <img
-                                            src={img}
-                                            alt={sku}
-                                            className="h-full w-full object-cover object-center"
-                                            onError={(e) => {
-                                                const el = e.currentTarget as HTMLImageElement;
-                                                el.onerror = null;
-                                                el.src = "/product-images/placeholder.png";
-                                            }}
-                                        />
-                                    </div>
-
-                                    <div className="min-w-0 flex-1">
-                                        <div className="text-sm font-medium truncate">{sku}</div>
-                                        <div className="text-xs truncate text-[#646464]">
-                                            {it?.name ?? ""}
-                                        </div>
-
-                                        <div className="mt-2 flex items-center justify-between">
-                                            <div className="inline-flex items-center rounded border border-[#384a93]/30 overflow-hidden">
-                                                <button
-                                                    className="h-7 w-7 text-sm hover:bg-[#384a93]/10 text-[#384a93]"
-                                                    onClick={() => setQty(sku, qty - 1)}
-                                                    aria-label="Restar"
-                                                >
-                                                    –
-                                                </button>
-                                                <div className="h-7 w-9 text-center text-sm leading-7">
-                                                    {qty}
-                                                </div>
-                                                <button
-                                                    className="h-7 w-7 text-sm hover:bg-[#384a93]/10 text-[#384a93]"
-                                                    onClick={() => setQty(sku, qty + 1)}
-                                                    aria-label="Sumar"
-                                                >
-                                                    +
-                                                </button>
-                                            </div>
-                                            <div className="text-sm font-medium">
-                                                {isLoggedIn ? (
-                                                    money(lineTotal, it?.currency ?? currency)
-                                                ) : (
-                                                    <span className="text-[#384A93]">A consultar</span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <button
-                                        className="self-start rounded p-1.5 text-[#1C1C1C] hover:text-red-600 hover:bg-red-50"
-                                        onClick={() => removeItem(sku)}
-                                        aria-label="Eliminar"
-                                        title="Eliminar"
-                                    >
-                                        🗑️
-                                    </button>
-                                </li>
-                            );
-                        })}
+                        {lines.map((it: any) => <CartLineItem key={it?.sku ?? ''} item={it} currency={currency} isLoggedIn={isLoggedIn} setQty={setQty} removeItem={removeItem} />)}
                     </ul>
                 )}
             </div>
