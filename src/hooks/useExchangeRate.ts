@@ -34,8 +34,10 @@ export function useExchangeRate() {
 
     // Función para convertir precio a ARS
     const convertToARS = (price: number, currency: string): number => {
-        if (currency?.toUpperCase() === 'USD' && exchangeRate) {
-            return price * exchangeRate;
+        if (currency?.toUpperCase() === 'USD') {
+            // Si no tenemos el tipo de cambio aún, usar la cotización de respaldo
+            const rate = exchangeRate || 1474.50;
+            return price * rate;
         }
         return price;
     };

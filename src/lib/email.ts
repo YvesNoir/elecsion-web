@@ -18,6 +18,21 @@ interface EmailOptions {
 
 export async function sendEmail({ to, subject, html }: EmailOptions) {
     try {
+        // Verificar configuración antes de enviar
+        const missingVars = [];
+        if (!process.env.SMTP_HOST) missingVars.push('SMTP_HOST');
+        if (!process.env.SMTP_PORT) missingVars.push('SMTP_PORT');
+        if (!process.env.SMTP_USER) missingVars.push('SMTP_USER');
+        if (!process.env.SMTP_PASSWORD) missingVars.push('SMTP_PASSWORD');
+        if (!process.env.FROM_EMAIL) missingVars.push('FROM_EMAIL');
+
+        if (missingVars.length > 0) {
+            const error = `Missing email environment variables: ${missingVars.join(', ')}`;
+            console.error('Email configuration error:', error);
+            return { success: false, error };
+        }
+
+
         const info = await transporter.sendMail({
             from: process.env.FROM_EMAIL,
             to: Array.isArray(to) ? to.join(', ') : to,
@@ -25,7 +40,6 @@ export async function sendEmail({ to, subject, html }: EmailOptions) {
             html,
         });
 
-        console.log('Email sent successfully:', info.messageId);
         return { success: true, messageId: info.messageId };
     } catch (error) {
         console.error('Error sending email:', error);

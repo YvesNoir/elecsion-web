@@ -8,6 +8,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import SuccessModal from "@/components/SuccessModal";
 import QuotationFormModal, { QuotationFormData } from "@/components/QuotationFormModal";
+import ProductImage from "@/components/ProductImage";
 
 function money(n: number, currency = "ARS") {
     return new Intl.NumberFormat("es-AR", { style: "currency", currency })
@@ -199,22 +200,16 @@ export default function CartPage() {
                                     {lines.map((line) => {
                                         const priceWithoutTax = line.price / 1.21; // Asumiendo 21% IVA incluido
                                         const lineTotal = line.price * line.qty;
-                                        const img = `/product-images/${line.sku}.png`;
 
                                         return (
                                             <tr key={line.sku} className="hover:bg-[#F5F5F7]/50">
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-start gap-3">
                                                         <div className="w-12 h-12 bg-[#F5F5F7] border border-[#B5B5B5]/40 rounded flex-shrink-0 overflow-hidden">
-                                                            <img
-                                                                src={img}
-                                                                alt={line.sku}
-                                                                className="w-full h-full object-cover"
-                                                                onError={(e) => {
-                                                                    const el = e.currentTarget as HTMLImageElement;
-                                                                    el.onerror = null;
-                                                                    el.src = "/product-images/placeholder.png";
-                                                                }}
+                                                            <ProductImage
+                                                                sku={line.sku}
+                                                                alt={line.name}
+                                                                className="w-full h-full"
                                                             />
                                                         </div>
                                                         <div className="min-w-0">

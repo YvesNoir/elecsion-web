@@ -59,34 +59,48 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // Calcular totales
+        // Calcular totales - optimización: una sola consulta para todos los productos
+        const productIds = items.map(item => item.id).filter(Boolean);
+        const productSkus = items.map(item => item.sku).filter(Boolean);
+
+        // Buscar todos los productos de una vez
+        const products = await prisma.product.findMany({
+            where: {
+                OR: [
+                    { id: { in: productIds } },
+                    { sku: { in: productSkus } }
+                ]
+            }
+        });
+
+        // Crear mapa para búsqueda rápida
+        const productMap = new Map();
+        products.forEach(product => {
+            productMap.set(product.id, product);
+            productMap.set(product.sku, product);
+        });
+
         let subtotal = 0;
         const orderItems = [];
 
         for (const item of items) {
-            // Intentar buscar por id primero, luego por sku
-            let product = null;
-            
-            if (item.id) {
-                product = await prisma.product.findUnique({
-                    where: { id: item.id }
-                });
-            }
-            
+            // Buscar producto en el mapa (primero por ID, luego por SKU)
+            let product = item.id ? productMap.get(item.id) : null;
             if (!product && item.sku) {
-                product = await prisma.product.findUnique({
-                    where: { sku: item.sku }
-                });
+                product = productMap.get(item.sku);
             }
 
             if (!product) {
                 return NextResponse.json(
-                    { error: `Producto no encontrado: ${item.name}` }, 
+                    { error: `Producto no encontrado: ${item.name}` },
                     { status: 404 }
                 );
             }
 
-            const itemSubtotal = Number(product.priceBase) * item.quantity;
+            // IMPORTANTE: Usar el precio que viene del carrito (ya convertido a ARS)
+            // en lugar del precio original de la base de datos
+            const unitPrice = item.price || Number(product.priceBase);
+            const itemSubtotal = unitPrice * item.quantity;
             subtotal += itemSubtotal;
 
             orderItems.push({
@@ -95,7 +109,7 @@ export async function POST(request: NextRequest) {
                 name: product.name,
                 quantity: item.quantity,
                 unit: product.unit || "unidad",
-                unitPrice: Number(product.priceBase),
+                unitPrice: unitPrice, // Precio ya convertido del carrito
                 subtotal: itemSubtotal,
                 total: itemSubtotal // Sin impuestos por ahora
             });
@@ -153,58 +167,80 @@ export async function POST(request: NextRequest) {
         });
 
         // Enviar notificaciones por email
+        const emailResults = [];
         try {
             const clientName = quoteName || clientUser?.name || 'Cliente';
             const clientEmail = quoteEmail || clientUser?.email;
             const orderNumber = order.code || order.id;
 
-            // 1. Email al cliente confirmando que la cotización está en revisión
-            if (clientEmail) {
-                const clientTemplate = emailTemplates.quoteCreatedForClient(orderNumber, clientName);
-                await sendEmail({
-                    to: clientEmail,
-                    subject: clientTemplate.subject,
-                    html: clientTemplate.html
-                });
-            }
 
-            // 2. Email a vendedores y administradores
-            const recipients = [];
-
-            // Obtener el vendedor asignado
-            if (sellerId) {
-                const seller = await prisma.user.findUnique({
-                    where: { id: sellerId },
+            // Ejecutar consultas de usuarios en paralelo
+            const [seller, admins] = await Promise.all([
+                sellerId
+                    ? prisma.user.findUnique({
+                        where: { id: sellerId },
+                        select: { email: true }
+                    })
+                    : Promise.resolve(null),
+                prisma.user.findMany({
+                    where: { role: 'ADMIN' },
                     select: { email: true }
-                });
-                if (seller?.email) {
-                    recipients.push(seller.email);
-                }
+                })
+            ]);
+
+            // Preparar templates
+            const clientTemplate = clientEmail
+                ? emailTemplates.quoteCreatedForClient(orderNumber, clientName)
+                : null;
+
+            // Preparar lista de destinatarios para vendedores/admins
+            const recipients = [];
+            if (seller?.email) {
+                recipients.push(seller.email);
             }
-
-            // Obtener todos los administradores
-            const admins = await prisma.user.findMany({
-                where: { role: 'ADMIN' },
-                select: { email: true }
-            });
-
             admins.forEach(admin => {
                 if (admin.email) {
                     recipients.push(admin.email);
                 }
             });
 
-            // Enviar notificación a vendedores y administradores
-            if (recipients.length > 0 && clientEmail) {
-                const sellerTemplate = emailTemplates.quoteCreatedForSellers(orderNumber, clientName, clientEmail);
-                await sendEmail({
-                    to: recipients,
-                    subject: sellerTemplate.subject,
-                    html: sellerTemplate.html
-                });
+            const sellerTemplate = recipients.length > 0 && clientEmail
+                ? emailTemplates.quoteCreatedForSellers(orderNumber, clientName, clientEmail)
+                : null;
+
+            // Enviar emails en paralelo
+            const emailPromises = [];
+
+            // 1. Email al cliente
+            if (clientTemplate && clientEmail) {
+                emailPromises.push(
+                    sendEmail({
+                        to: clientEmail,
+                        subject: clientTemplate.subject,
+                        html: clientTemplate.html
+                    }).then(result => ({ type: 'client', email: clientEmail, success: result.success, error: result.error }))
+                );
+            }
+
+            // 2. Email a vendedores y administradores
+            if (sellerTemplate && recipients.length > 0) {
+                emailPromises.push(
+                    sendEmail({
+                        to: recipients,
+                        subject: sellerTemplate.subject,
+                        html: sellerTemplate.html
+                    }).then(result => ({ type: 'sellers', emails: recipients, success: result.success, error: result.error }))
+                );
+            }
+
+            // Esperar todos los emails
+            if (emailPromises.length > 0) {
+                const results = await Promise.all(emailPromises);
+                emailResults.push(...results);
             }
         } catch (emailError) {
             console.error('Error sending quote email notifications:', emailError);
+            emailResults.push({ type: 'error', error: emailError });
             // No interrumpimos el flujo por errores de email
         }
 
