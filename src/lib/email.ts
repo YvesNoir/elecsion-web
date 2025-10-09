@@ -32,13 +32,6 @@ export async function sendEmail({ to, subject, html }: EmailOptions) {
             return { success: false, error };
         }
 
-        console.log('Sending email:', {
-            to: Array.isArray(to) ? to.join(', ') : to,
-            subject,
-            from: process.env.FROM_EMAIL,
-            host: process.env.SMTP_HOST,
-            port: process.env.SMTP_PORT
-        });
 
         const info = await transporter.sendMail({
             from: process.env.FROM_EMAIL,
@@ -47,18 +40,9 @@ export async function sendEmail({ to, subject, html }: EmailOptions) {
             html,
         });
 
-        console.log('Email sent successfully:', info.messageId);
         return { success: true, messageId: info.messageId };
     } catch (error) {
         console.error('Error sending email:', error);
-        console.error('Email configuration:', {
-            host: process.env.SMTP_HOST,
-            port: process.env.SMTP_PORT,
-            secure: process.env.SMTP_SECURE,
-            user: process.env.SMTP_USER ? 'SET' : 'NOT_SET',
-            pass: process.env.SMTP_PASSWORD ? 'SET' : 'NOT_SET',
-            from: process.env.FROM_EMAIL
-        });
         return { success: false, error };
     }
 }
