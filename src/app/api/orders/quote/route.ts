@@ -153,19 +153,31 @@ export async function POST(request: NextRequest) {
         });
 
         // Enviar notificaciones por email
+        const emailResults = [];
         try {
             const clientName = quoteName || clientUser?.name || 'Cliente';
             const clientEmail = quoteEmail || clientUser?.email;
             const orderNumber = order.code || order.id;
 
+            console.log('Starting email notifications for quote:', {
+                orderNumber,
+                clientName,
+                clientEmail,
+                hasSession: !!session?.user
+            });
+
             // 1. Email al cliente confirmando que la cotización está en revisión
             if (clientEmail) {
                 const clientTemplate = emailTemplates.quoteCreatedForClient(orderNumber, clientName);
-                await sendEmail({
+                const clientResult = await sendEmail({
                     to: clientEmail,
                     subject: clientTemplate.subject,
                     html: clientTemplate.html
                 });
+                emailResults.push({ type: 'client', email: clientEmail, success: clientResult.success, error: clientResult.error });
+                console.log('Client email result:', clientResult);
+            } else {
+                console.log('No client email provided, skipping client notification');
             }
 
             // 2. Email a vendedores y administradores
@@ -179,6 +191,7 @@ export async function POST(request: NextRequest) {
                 });
                 if (seller?.email) {
                     recipients.push(seller.email);
+                    console.log('Added assigned seller to recipients:', seller.email);
                 }
             }
 
@@ -194,17 +207,26 @@ export async function POST(request: NextRequest) {
                 }
             });
 
+            console.log('Email recipients for sellers/admins:', recipients);
+
             // Enviar notificación a vendedores y administradores
             if (recipients.length > 0 && clientEmail) {
                 const sellerTemplate = emailTemplates.quoteCreatedForSellers(orderNumber, clientName, clientEmail);
-                await sendEmail({
+                const sellerResult = await sendEmail({
                     to: recipients,
                     subject: sellerTemplate.subject,
                     html: sellerTemplate.html
                 });
+                emailResults.push({ type: 'sellers', emails: recipients, success: sellerResult.success, error: sellerResult.error });
+                console.log('Sellers/admins email result:', sellerResult);
+            } else {
+                console.log('No valid recipients or client email for seller notification');
             }
+
+            console.log('Email notifications completed:', emailResults);
         } catch (emailError) {
             console.error('Error sending quote email notifications:', emailError);
+            emailResults.push({ type: 'error', error: emailError });
             // No interrumpimos el flujo por errores de email
         }
 

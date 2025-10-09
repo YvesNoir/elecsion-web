@@ -18,6 +18,28 @@ interface EmailOptions {
 
 export async function sendEmail({ to, subject, html }: EmailOptions) {
     try {
+        // Verificar configuración antes de enviar
+        const missingVars = [];
+        if (!process.env.SMTP_HOST) missingVars.push('SMTP_HOST');
+        if (!process.env.SMTP_PORT) missingVars.push('SMTP_PORT');
+        if (!process.env.SMTP_USER) missingVars.push('SMTP_USER');
+        if (!process.env.SMTP_PASSWORD) missingVars.push('SMTP_PASSWORD');
+        if (!process.env.FROM_EMAIL) missingVars.push('FROM_EMAIL');
+
+        if (missingVars.length > 0) {
+            const error = `Missing email environment variables: ${missingVars.join(', ')}`;
+            console.error('Email configuration error:', error);
+            return { success: false, error };
+        }
+
+        console.log('Sending email:', {
+            to: Array.isArray(to) ? to.join(', ') : to,
+            subject,
+            from: process.env.FROM_EMAIL,
+            host: process.env.SMTP_HOST,
+            port: process.env.SMTP_PORT
+        });
+
         const info = await transporter.sendMail({
             from: process.env.FROM_EMAIL,
             to: Array.isArray(to) ? to.join(', ') : to,
@@ -29,6 +51,14 @@ export async function sendEmail({ to, subject, html }: EmailOptions) {
         return { success: true, messageId: info.messageId };
     } catch (error) {
         console.error('Error sending email:', error);
+        console.error('Email configuration:', {
+            host: process.env.SMTP_HOST,
+            port: process.env.SMTP_PORT,
+            secure: process.env.SMTP_SECURE,
+            user: process.env.SMTP_USER ? 'SET' : 'NOT_SET',
+            pass: process.env.SMTP_PASSWORD ? 'SET' : 'NOT_SET',
+            from: process.env.FROM_EMAIL
+        });
         return { success: false, error };
     }
 }
