@@ -4,6 +4,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useCart } from "@/store/cart";
 import { getProductImageUrls } from "@/lib/utils/image";
+import { useExchangeRate } from "@/hooks/useExchangeRate";
 
 type Props = {
     sku: string | null;
@@ -52,6 +53,7 @@ export default function ProductCardRow({
     const addItem = cart?.addItem as
         | ((p: { sku: string; name: string; price: number; currency: string; unit?: string }, qty: number) => void)
         | undefined;
+    const { getCartPrice } = useExchangeRate();
     const cartLines: Array<{ sku: string; qty: number }> = Array.isArray(cart?.lines)
         ? cart.lines
         : Array.isArray(cart?.items)
@@ -106,8 +108,16 @@ export default function ProductCardRow({
     const add = () => {
         if (!normalizedSku || qty < 1) return;
         if (typeof addItem === "function") {
+            const cartPrice = getCartPrice(Number(priceBase), currency);
             addItem(
-                { id: normalizedSku, sku: normalizedSku, name, price: Number(priceBase), currency, unit: unit ?? undefined },
+                {
+                    id: normalizedSku,
+                    sku: normalizedSku,
+                    name,
+                    price: cartPrice.price, // Convertido a ARS
+                    currency: cartPrice.currency, // Siempre ARS
+                    unit: unit ?? undefined
+                },
                 qty
             );
             if (typeof cart?.open === "function") cart.open(true);

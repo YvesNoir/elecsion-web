@@ -8,7 +8,7 @@ import Link from "next/link";
 
 function LoginForm() {
     const [email, setEmail] = useState("cliente@empresa.com");
-    const [password, setPassword] = useState("123456");
+    const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const router = useRouter();
@@ -68,15 +68,20 @@ function LoginForm() {
     }
 
     return (
-        <div className="fixed inset-0 z-[9999] bg-gradient-to-br from-[#384A93] via-[#4a5aa3] to-[#5c6cb3] flex items-center justify-center p-4 overflow-hidden"
-             style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
-            {/* Fondo con patrón sutil */}
-            <div className="absolute inset-0 opacity-10">
-                <div className="h-full w-full" style={{
-                    backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32' fill='none' stroke='rgb(255,255,255)'%3e%3cpath d='m0 0l32 32M32 0L0 32'/%3e%3c/svg%3e")`,
-                    backgroundSize: '64px 64px'
-                }}></div>
-            </div>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-hidden"
+             style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundImage: 'url(/singin-background.jpg)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat'
+             }}>
+            {/* Overlay oscuro para mejor legibilidad */}
+            <div className="absolute inset-0 bg-black/40"></div>
             
             <div className="relative w-full max-w-md z-10">
                 {/* Card principal */}
@@ -138,7 +143,7 @@ function LoginForm() {
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         className="w-full px-4 py-3 border border-[#B5B5B5]/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#384A93] focus:border-transparent transition-colors bg-[#F5F5F7] hover:bg-white pr-12"
-                                        placeholder="123456"
+                                        placeholder="Ingresa tu contraseña"
                                     />
                                     <button
                                         type="button"
@@ -157,9 +162,6 @@ function LoginForm() {
                                         )}
                                     </button>
                                 </div>
-                                <p className="mt-1 text-xs text-[#646464]">
-                                    Contraseña por defecto: 123456
-                                </p>
                             </div>
 
                             {/* Link ¿Olvidaste contraseña? */}
@@ -212,12 +214,14 @@ function LoginForm() {
                             </div>
 
                             {/* Botón Registrarse */}
-                            <Link
-                                href="/contacto"
+                            <a
+                                href="https://wa.me/5491158753371?text=%C2%A1Hola!%20Estoy%20interesado%20en%20acceder%20al%20cat%C3%A1logo%20de%20Elecsion"
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 className="w-full border-2 border-[#384A93] text-[#384A93] py-3 px-4 rounded-lg font-medium hover:bg-[#384A93] hover:text-white focus:outline-none focus:ring-2 focus:ring-[#384A93] focus:ring-offset-2 transition-all duration-200 text-center block"
                             >
                                 Solicitar Acceso
-                            </Link>
+                            </a>
                         </form>
                     </div>
                 </div>
@@ -225,7 +229,7 @@ function LoginForm() {
                 {/* Footer */}
                 <div className="text-center mt-8">
                     <p className="text-white/80 text-sm">
-                        © 2024 Elecsion - Distribuidora de productos eléctricos y ferretería
+                        © {new Date().getFullYear()} Elecsion - Distribuidora de productos eléctricos y ferretería
                     </p>
                     <div className="flex justify-center gap-4 mt-4">
                         <Link href="/contacto" className="text-white/60 hover:text-white text-sm transition-colors">

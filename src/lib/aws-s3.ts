@@ -61,18 +61,39 @@ export async function checkObjectExists(key: string): Promise<boolean> {
 }
 
 /**
- * Lista objetos en S3 por prefijo
+ * Lista objetos en S3 por prefijo (con paginación para obtener TODOS los objetos)
  */
 export async function listObjects(prefix?: string): Promise<string[]> {
     try {
         const s3Client = getS3Client();
-        const command = new ListObjectsV2Command({
-            Bucket: getBucketName(),
-            Prefix: prefix,
-        });
+        const allObjects: string[] = [];
+        let continuationToken: string | undefined;
+        let pageCount = 0;
 
-        const response = await s3Client.send(command);
-        return response.Contents?.map(obj => obj.Key!) || [];
+        do {
+            pageCount++;
+            const command = new ListObjectsV2Command({
+                Bucket: getBucketName(),
+                Prefix: prefix,
+                ContinuationToken: continuationToken,
+                MaxKeys: 1000 // Máximo por página
+            });
+
+            const response = await s3Client.send(command);
+
+            // Agregar objetos de esta página
+            if (response.Contents) {
+                const keys = response.Contents.map(obj => obj.Key!);
+                allObjects.push(...keys);
+            }
+
+            // Preparar para la siguiente página
+            continuationToken = response.NextContinuationToken;
+
+        } while (continuationToken);
+
+        console.log(`📦 listObjects: Found ${allObjects.length} total objects with prefix "${prefix}" in ${pageCount} page(s)`);
+        return allObjects;
     } catch (error) {
         console.error('Error listing S3 objects:', error);
         return [];
