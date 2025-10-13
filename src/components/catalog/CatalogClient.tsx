@@ -58,6 +58,7 @@ export default function CatalogClient({
     const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
     const [brandsCollapsed, setBrandsCollapsed] = useState(false);
     const [searchInput, setSearchInput] = useState(searchTerm);
+    const [brandFilter, setBrandFilter] = useState('');
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -116,17 +117,6 @@ export default function CatalogClient({
                     {/* Sidebar filtros */}
                     <aside className="col-span-12 md:col-span-3">
                         <div className="space-y-4">
-                            {/* Header de filtros */}
-                            <div className="bg-white rounded-lg border border-[#B5B5B5]/20">
-                                <div className="px-4 py-4">
-                                    <h2 className="text-lg font-medium text-[#1C1C1C]">Filtros</h2>
-                                    <p className="text-sm text-[#646464] mt-1">
-                                        {totalProducts} {totalProducts === 1 ? 'PRODUCTO' : 'PRODUCTOS'}
-                                        {selectedBrand && ` - ${selectedBrand.name.toUpperCase()}`}
-                                        {searchTerm && ` - Búsqueda: "${searchTerm}"`}
-                                    </p>
-                                </div>
-                            </div>
 
                             {/* Buscador */}
                             <div className="bg-white rounded-lg border border-[#B5B5B5]/20">
@@ -197,25 +187,46 @@ export default function CatalogClient({
                                             </span>
                                         </Link>
 
-                                        {/* Lista de marcas */}
-                                        <div className="max-h-[calc(100vh-300px)] overflow-y-auto">
-                                            {brands.map((b) => {
-                                                const active = b.slug === currentSlug;
-                                                return (
-                                                    <Link
-                                                        key={b.id}
-                                                        href={buildUrl(b.slug, 1, searchTerm)}
-                                                        className={`flex items-center justify-between px-4 py-3 text-sm border-b border-[#B5B5B5]/10 last:border-b-0 transition-colors ${
-                                                            active 
-                                                                ? "bg-[#384A93]/5 text-[#384A93] font-medium border-l-4 border-l-[#384A93]" 
-                                                                : "text-[#646464] hover:bg-gray-50 hover:text-[#1C1C1C]"
-                                                        }`}
-                                                    >
-                                                        <span>{b.name}</span>
-                                                        <span className="text-xs">{b._count.products}</span>
-                                                    </Link>
-                                                );
-                                            })}
+                                        {/* Buscador de marcas */}
+                                        <div className="px-4 py-3 border-b border-[#E5E5E5]">
+                                            <input
+                                                type="text"
+                                                value={brandFilter}
+                                                onChange={(e) => setBrandFilter(e.target.value)}
+                                                placeholder="Buscar marca..."
+                                                className="w-full px-3 py-2 text-xs border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#384A93] focus:border-transparent"
+                                            />
+                                        </div>
+
+                                        {/* Lista de marcas optimizada */}
+                                        <div className="px-4 py-3 max-h-[calc(100vh-200px)] overflow-y-auto">
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 gap-2">
+                                                {brands
+                                                    .filter(b =>
+                                                        brandFilter === '' ||
+                                                        b.name.toLowerCase().includes(brandFilter.toLowerCase())
+                                                    )
+                                                    .map((b) => {
+                                                    const active = b.slug === currentSlug;
+                                                    return (
+                                                        <Link
+                                                            key={b.id}
+                                                            href={buildUrl(b.slug, 1, searchTerm)}
+                                                            className={`flex flex-col p-2.5 rounded-lg text-xs transition-colors border ${
+                                                                active
+                                                                    ? "bg-[#384A93] text-white border-[#384A93] shadow-sm"
+                                                                    : "bg-gray-50 text-[#646464] border-[#E5E5E5] hover:bg-[#384A93]/5 hover:text-[#384A93] hover:border-[#384A93]/30"
+                                                            }`}
+                                                            title={`${b.name} (${b._count.products} productos)`}
+                                                        >
+                                                            <span className="font-medium truncate">{b.name}</span>
+                                                            <span className={`text-xs mt-0.5 ${active ? 'text-white/80' : 'text-[#999999]'}`}>
+                                                                {b._count.products} prod.
+                                                            </span>
+                                                        </Link>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
                                     </div>
                                 )}
