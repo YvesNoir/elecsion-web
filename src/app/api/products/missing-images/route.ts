@@ -24,13 +24,16 @@ export async function GET() {
             );
         }
 
-        // Obtener todos los productos activos
+        // Obtener todos los productos activos con marcas activas
         const products = await prisma.product.findMany({
             where: {
                 isActive: true,
                 isDeleted: false,
                 sku: {
                     not: null
+                },
+                brand: {
+                    isActive: true  // Solo marcas activas
                 }
             },
             select: {

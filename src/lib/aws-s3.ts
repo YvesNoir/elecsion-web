@@ -136,9 +136,15 @@ export async function uploadFile(key: string, fileBuffer: Buffer, contentType: s
 
 /**
  * Genera key para imagen de producto basado en SKU
+ * Usa la misma lógica que sanitizeSkuForFilename para mantener consistencia
  */
 export function generateProductImageKey(sku: string, extension: string): string {
-    const cleanSku = sku.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const cleanSku = sku
+        .trim()
+        .toLowerCase()
+        .replace(/\//g, '')
+        .replace(/[\\:*?"<>|\s]/g, '')
+        .replace(/[^a-z0-9-]/g, '');
     return `products/${cleanSku}.${extension}`;
 }
 

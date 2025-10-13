@@ -9,6 +9,8 @@ export default function ImageUploaderBulk() {
     const [uploading, setUploading] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     const [uploadProgress, setUploadProgress] = useState<{[key: string]: number}>({});
+    const [lastImportCount, setLastImportCount] = useState<number>(0);
+    const [showImportSummary, setShowImportSummary] = useState<boolean>(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const { toast, showSuccess, showError, hideToast } = useToast();
 
@@ -156,6 +158,8 @@ export default function ImageUploaderBulk() {
 
             if (successfulUploads.length > 0) {
                 setUploadedFiles(prev => [...prev, ...successfulUploads]);
+                setLastImportCount(successfulUploads.length);
+                setShowImportSummary(true);
                 showSuccess(`${successfulUploads.length} imagen(es) subida(s) exitosamente a S3`);
 
                 // Limpiar input
@@ -260,6 +264,47 @@ export default function ImageUploaderBulk() {
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* Resumen de importación */}
+            {showImportSummary && lastImportCount > 0 && (
+                <div className="bg-green-50 border-2 border-green-300 rounded-lg p-6">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
+                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-semibold text-green-900">¡Importación Completada!</h3>
+                            <p className="text-green-700">Se importaron exitosamente las imágenes</p>
+                        </div>
+                        <button
+                            onClick={() => setShowImportSummary(false)}
+                            className="ml-auto text-green-600 hover:text-green-800 transition-colors"
+                            title="Cerrar resumen"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div className="bg-green-100 rounded-lg p-4 mb-4">
+                        <div className="text-center">
+                            <div className="text-3xl font-bold text-green-800 mb-1">
+                                {lastImportCount}
+                            </div>
+                            <div className="text-sm text-green-700">
+                                {lastImportCount === 1 ? 'imagen importada' : 'imágenes importadas'}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="text-sm text-green-700 text-center">
+                        Las imágenes están ahora disponibles en el catálogo y aparecerán automáticamente en los productos correspondientes.
+                    </div>
                 </div>
             )}
 
