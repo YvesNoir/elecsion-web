@@ -48,6 +48,9 @@ export default function PedidoRapidoClient({ userRole, userId }: PedidoRapidoCli
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedBrandId, setSelectedBrandId] = useState<string>("");
     const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalProducts, setTotalProducts] = useState(0);
+    const itemsPerPage = 60;
 
     const cart = useCart();
 
@@ -100,7 +103,8 @@ export default function PedidoRapidoClient({ userRole, userId }: PedidoRapidoCli
 
                 // Construir la URL con los parámetros
                 const params = new URLSearchParams();
-                params.set('limit', '50');
+                params.set('limit', itemsPerPage.toString());
+                params.set('offset', ((currentPage - 1) * itemsPerPage).toString());
 
                 if (searchTerm) {
                     params.set('q', searchTerm);
@@ -119,6 +123,7 @@ export default function PedidoRapidoClient({ userRole, userId }: PedidoRapidoCli
 
                 if (data.products) {
                     setProducts(data.products);
+                    setTotalProducts(data.total || data.products.length);
                 }
             } catch (error) {
                 console.error("Error fetching products:", error);
@@ -130,7 +135,15 @@ export default function PedidoRapidoClient({ userRole, userId }: PedidoRapidoCli
         // Debounce search
         const timeoutId = setTimeout(fetchProducts, 300);
         return () => clearTimeout(timeoutId);
+    }, [searchTerm, selectedBrandId, currentPage]);
+
+    // Reset page when search changes
+    useEffect(() => {
+        setCurrentPage(1);
     }, [searchTerm, selectedBrandId]);
+
+    const totalPages = Math.ceil(totalProducts / itemsPerPage);
+    const showPagination = totalPages > 1;
 
     const selectedClient = useMemo(() => {
         return clients.find(client => client.id === selectedClientId) || null;
@@ -187,6 +200,91 @@ export default function PedidoRapidoClient({ userRole, userId }: PedidoRapidoCli
                         loading={loading}
                         selectedClientId={selectedClientId}
                     />
+
+                    {/* Paginación */}
+                    {showPagination && !loading && (
+                        <div className="p-4 border-t border-[#E5E5E5] bg-gray-50">
+                            <div className="flex items-center justify-between">
+                                <div className="text-sm text-[#646464]">
+                                    Mostrando {((currentPage - 1) * itemsPerPage) + 1} a {Math.min(currentPage * itemsPerPage, totalProducts)} de {totalProducts} productos
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                        disabled={currentPage === 1}
+                                        className="px-3 py-1.5 text-sm border border-[#B5B5B5]/60 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        Anterior
+                                    </button>
+
+                                    <div className="flex items-center gap-1">
+                                        {/* Primera página */}
+                                        {currentPage > 3 && (
+                                            <>
+                                                <button
+                                                    onClick={() => setCurrentPage(1)}
+                                                    className="px-3 py-1.5 text-sm border border-[#B5B5B5]/60 rounded hover:bg-gray-100 transition-colors"
+                                                >
+                                                    1
+                                                </button>
+                                                {currentPage > 4 && (
+                                                    <span className="px-2 text-sm text-[#646464]">...</span>
+                                                )}
+                                            </>
+                                        )}
+
+                                        {/* Páginas alrededor de la actual */}
+                                        {(() => {
+                                            const startPage = Math.max(1, currentPage - 2);
+                                            const endPage = Math.min(totalPages, currentPage + 2);
+                                            const pages = [];
+
+                                            for (let page = startPage; page <= endPage; page++) {
+                                                pages.push(
+                                                    <button
+                                                        key={page}
+                                                        onClick={() => setCurrentPage(page)}
+                                                        className={`px-3 py-1.5 text-sm border rounded transition-colors ${
+                                                            page === currentPage
+                                                                ? 'bg-[#384A93] text-white border-[#384A93]'
+                                                                : 'border-[#B5B5B5]/60 hover:bg-gray-100'
+                                                        }`}
+                                                    >
+                                                        {page}
+                                                    </button>
+                                                );
+                                            }
+
+                                            return pages;
+                                        })()}
+
+                                        {/* Última página */}
+                                        {currentPage < totalPages - 2 && (
+                                            <>
+                                                {currentPage < totalPages - 3 && (
+                                                    <span className="px-2 text-sm text-[#646464]">...</span>
+                                                )}
+                                                <button
+                                                    onClick={() => setCurrentPage(totalPages)}
+                                                    className="px-3 py-1.5 text-sm border border-[#B5B5B5]/60 rounded hover:bg-gray-100 transition-colors"
+                                                >
+                                                    {totalPages}
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
+
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                        disabled={currentPage === totalPages}
+                                        className="px-3 py-1.5 text-sm border border-[#B5B5B5]/60 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        Siguiente
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 

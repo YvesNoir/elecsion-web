@@ -1,0 +1,26 @@
+# Robots.txt para Elecsion - Plataforma e-commerce B2B de productos eléctricos
+
+User-agent: *
+Allow: /
+Allow: /catalogo
+Allow: /catalogo/*
+
+# Bloquear páginas administrativas y de usuario
+Disallow: /mi-cuenta
+Disallow: /pedido-rapido
+Disallow: /pedidos-pendientes
+Disallow: /login
+Disallow: /api/
+
+# Bloquear archivos de desarrollo
+Disallow: /_next/
+Disallow: /static/
+
+# Permitir acceso a imágenes de productos
+Allow: /product-images/
+
+# Sitemap
+Sitemap: https://www.elecsion.com/sitemap.xml
+
+# Crawl-delay para evitar sobrecarga del servidor
+Crawl-delay: 1

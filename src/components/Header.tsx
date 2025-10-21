@@ -4,7 +4,6 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import CartToggleButton from "@/components/cart/CartToggleButton";
-import SearchButton from "@/components/SearchButton";
 import ExchangeRateDisplay from "@/components/ExchangeRateDisplay";
 
 type HeaderProps = {
@@ -62,7 +61,6 @@ export default function Header({ className }: HeaderProps) {
                         {user && (
                             <Link href="/pedido-rapido" className={navLink}>Pedido Rápido</Link>
                         )}
-                        <SearchButton />
                     </nav>
 
                     {/* Logo - Centrado en móvil, izquierda en desktop */}
@@ -139,10 +137,6 @@ export default function Header({ className }: HeaderProps) {
                                 {user ? "Mi cuenta" : "Ingresar"}
                             </Link>
 
-                            {/* Buscador móvil */}
-                            <div className="px-4">
-                                <SearchButton />
-                            </div>
                         </nav>
                     </div>
                 )}

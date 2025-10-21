@@ -26,28 +26,34 @@ export async function GET(req: Request) {
     if (category) where.category = { slug: category };
 
     try {
-        // Si hay limit pero no page, usar limit directo (para pedido-rapido)
+        // Si hay limit pero no page, usar limit directo con offset (para pedido-rapido)
         if (searchParams.has("limit") && !searchParams.has("page")) {
-            const products = await prisma.product.findMany({
-                where,
-                take: limit,
-                orderBy: { updatedAt: "desc" },
-                select: {
-                    id: true,
-                    sku: true,
-                    name: true,
-                    priceBase: true,
-                    currency: true,
-                    stockQty: true,
-                    unit: true,
-                    brand: {
-                        select: {
-                            name: true,
-                            slug: true
+            const offsetValue = Number(searchParams.get("offset") ?? "0");
+
+            const [products, total] = await Promise.all([
+                prisma.product.findMany({
+                    where,
+                    take: limit,
+                    skip: offsetValue,
+                    orderBy: { updatedAt: "desc" },
+                    select: {
+                        id: true,
+                        sku: true,
+                        name: true,
+                        priceBase: true,
+                        currency: true,
+                        stockQty: true,
+                        unit: true,
+                        brand: {
+                            select: {
+                                name: true,
+                                slug: true
+                            }
                         }
                     }
-                }
-            });
+                }),
+                prisma.product.count({ where })
+            ]);
 
             const serializedProducts = products.map(product => ({
                 id: product.id,
@@ -60,7 +66,7 @@ export async function GET(req: Request) {
                 brand: product.brand
             }));
 
-            return json({ products: serializedProducts }, { status: 200 });
+            return json({ products: serializedProducts, total }, { status: 200 });
         }
 
         // Paginación normal

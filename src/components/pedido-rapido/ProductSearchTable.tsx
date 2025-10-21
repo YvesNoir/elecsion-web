@@ -240,9 +240,14 @@ export default function ProductSearchTable({ products, loading, selectedClientId
                                         >
                                             –
                                         </button>
-                                        <div className="h-8 min-w-[2rem] px-1 text-center text-sm leading-8 text-[#384A93] font-medium">
-                                            {qty}
-                                        </div>
+                                        <input
+                                            type="number"
+                                            value={qty}
+                                            onChange={(e) => updateQuantity(product.id, parseInt(e.target.value) || 0)}
+                                            className="h-8 min-w-[3rem] w-16 px-1 text-center text-sm text-[#384A93] font-medium bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-[#384A93] rounded"
+                                            min="0"
+                                            max="9999"
+                                        />
                                         <button
                                             type="button"
                                             onClick={() => updateQuantity(product.id, qty + 1)}
@@ -344,9 +349,14 @@ export default function ProductSearchTable({ products, loading, selectedClientId
                                                 >
                                                     –
                                                 </button>
-                                                <div className="h-7 min-w-[2.25rem] px-1 text-center text-sm leading-7 text-[#384A93] font-medium">
-                                                    {qty}
-                                                </div>
+                                                <input
+                                                    type="number"
+                                                    value={qty}
+                                                    onChange={(e) => updateQuantity(product.id, parseInt(e.target.value) || 0)}
+                                                    className="h-7 min-w-[2.5rem] w-16 px-1 text-center text-sm text-[#384A93] font-medium bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-[#384A93] rounded"
+                                                    min="0"
+                                                    max="9999"
+                                                />
                                                 <button
                                                     type="button"
                                                     onClick={() => updateQuantity(product.id, qty + 1)}

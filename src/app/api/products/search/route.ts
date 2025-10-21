@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
         const query = searchParams.get("q");
         const brandId = searchParams.get("brand");
         const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 100);
+        const offset = parseInt(searchParams.get("offset") || "0");
 
         if (!query || query.trim().length < 2) {
             return NextResponse.json({ products: [] });
@@ -39,29 +40,33 @@ export async function GET(request: NextRequest) {
         }
 
         // Buscar productos usando Prisma ORM para mejor compatibilidad
-        const products = await prisma.product.findMany({
-            where: whereConditions,
-            select: {
-                id: true,
-                sku: true,
-                name: true,
-                priceBase: true,
-                currency: true,
-                stockQty: true,
-                unit: true,
-                brand: {
-                    select: {
-                        name: true,
-                        slug: true
+        const [products, total] = await Promise.all([
+            prisma.product.findMany({
+                where: whereConditions,
+                select: {
+                    id: true,
+                    sku: true,
+                    name: true,
+                    priceBase: true,
+                    currency: true,
+                    stockQty: true,
+                    unit: true,
+                    brand: {
+                        select: {
+                            name: true,
+                            slug: true
+                        }
                     }
-                }
-            },
-            orderBy: [
-                { sku: 'asc' },
-                { name: 'asc' }
-            ],
-            take: limit
-        });
+                },
+                orderBy: [
+                    { sku: 'asc' },
+                    { name: 'asc' }
+                ],
+                take: limit,
+                skip: offset
+            }),
+            prisma.product.count({ where: whereConditions })
+        ]);
 
         // Transformar el resultado para serializarlo
         const serializedProducts = products.map(product => ({
@@ -75,7 +80,7 @@ export async function GET(request: NextRequest) {
             brand: product.brand
         }));
 
-        return NextResponse.json({ products: serializedProducts });
+        return NextResponse.json({ products: serializedProducts, total });
 
     } catch (error) {
         console.error("Error searching products:", error);
