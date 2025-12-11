@@ -11,6 +11,10 @@ import CartDrawerWrapper from "@/components/cart/CartDrawerWrapper";
 import SessionProvider from "@/components/SessionProvider";
 import WhatsAppFloat from "@/components/WhatsAppFloat";
 
+// Forzamos render dinámico en toda la app para evitar builds fallidos por falta de DB en prerender
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const montserrat = Montserrat({
     subsets: ["latin"],
     weight: ["300", "400", "500", "600", "700", "800"],
