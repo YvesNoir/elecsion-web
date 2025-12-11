@@ -6,6 +6,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Montserrat } from "next/font/google";
+import Script from "next/script";
 import { CartProvider } from "@/store/cart";   // named import
 import CartDrawerWrapper from "@/components/cart/CartDrawerWrapper";
 import SessionProvider from "@/components/SessionProvider";
@@ -33,6 +34,19 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <body
             className={`${montserrat.className} ${montserrat.variable} font-sans min-h-screen flex flex-col bg-white text-[#1C1C1C] antialiased`}
         >
+        {/* Google Analytics - gtag */}
+        <Script
+            src="https://www.googletagmanager.com/gtag/js?id=G-KLL45P28YY"
+            strategy="afterInteractive"
+        />
+        <Script id="gtag-init" strategy="afterInteractive">
+            {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', 'G-KLL45P28YY');
+            `}
+        </Script>
         <SessionProvider>
             <CartProvider>
                 <Header />
