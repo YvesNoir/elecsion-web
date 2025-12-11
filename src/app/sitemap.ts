@@ -40,7 +40,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       },
       select: {
         slug: true,
-        updatedAt: true,
+        createdAt: true,
         _count: {
           select: {
             products: {
@@ -53,14 +53,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         }
       },
       orderBy: {
-        updatedAt: 'desc'
+        createdAt: 'desc'
       }
     })
 
     // Generar URLs por marca
     const brandRoutes: MetadataRoute.Sitemap = brands.map((brand) => ({
       url: `${baseUrl}/catalogo?brand=${brand.slug}`,
-      lastModified: brand.updatedAt,
+      lastModified: brand.createdAt,
       changeFrequency: 'weekly' as const,
       priority: brand._count.products > 50 ? 0.8 : 0.6, // Prioridad más alta para marcas con más productos
     }))
