@@ -6,14 +6,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useCart } from "@/store/cart";
 import { getProductImageUrls } from "@/lib/utils/image";
 
-function money(n: number, currency = "ARS") {
-    return new Intl.NumberFormat("es-AR", { style: "currency", currency })
+function money(n: number) {
+    return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" })
         .format(Number(n || 0));
 }
 
-function CartLineItem({ item, currency, isLoggedIn, setQty, removeItem }: {
+function CartLineItem({ item, isLoggedIn, setQty, removeItem }: {
     item: any;
-    currency: string;
     isLoggedIn: boolean;
     setQty: (sku: string, qty: number) => void;
     removeItem: (sku: string) => void;
@@ -68,7 +67,7 @@ function CartLineItem({ item, currency, isLoggedIn, setQty, removeItem }: {
                     </div>
                     <div className="text-sm font-medium">
                         {isLoggedIn ? (
-                            money(lineTotal, item?.currency ?? currency)
+                            money(lineTotal)
                         ) : (
                             <span className="text-[#384A93]">A consultar</span>
                         )}
@@ -157,8 +156,6 @@ export default function CartDrawer({ isLoggedIn }: CartDrawerProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, cart]);
 
-    const currency = (lines[0]?.currency as string | undefined) ?? "ARS";
-
     return (
         <>
             {/* Backdrop */}
@@ -199,7 +196,7 @@ export default function CartDrawer({ isLoggedIn }: CartDrawerProps) {
                     </p>
                 ) : (
                     <ul className="space-y-3">
-                        {lines.map((it: any) => <CartLineItem key={it?.sku ?? ''} item={it} currency={currency} isLoggedIn={isLoggedIn} setQty={setQty} removeItem={removeItem} />)}
+                        {lines.map((it: any) => <CartLineItem key={it?.sku ?? ''} item={it} isLoggedIn={isLoggedIn} setQty={setQty} removeItem={removeItem} />)}
                     </ul>
                 )}
             </div>
@@ -210,7 +207,7 @@ export default function CartDrawer({ isLoggedIn }: CartDrawerProps) {
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-[#646464]">Subtotal (sin IVA)</span>
                         <span className="font-semibold text-[#1C1C1C]">
-                            {money(subtotal, currency)}
+                            {money(subtotal)}
                         </span>
                     </div>
                 ) : (

@@ -18,7 +18,6 @@ type ApiProduct = {
     name: string;
     unit: string | null;
     price: number;
-    currency: string; // "ARS" | "USD" | ...
 };
 
 type Props = {
@@ -152,7 +151,7 @@ export default function CatalogoClient({ brands }: Props) {
                                                 <td className="px-3 py-2 text-[#1C1C1C]">{p.name}</td>
                                                 <td className="px-3 py-2 text-[#646464]">{p.unit ?? "—"}</td>
                                                 <td className="px-3 py-2 text-[#1C1C1C] tabular-nums">
-                                                    {formatMoney(p.price, p.currency)}
+                                                    {formatMoney(p.price)}
                                                 </td>
                                             </tr>
                                         ))}
@@ -168,14 +167,14 @@ export default function CatalogoClient({ brands }: Props) {
     );
 }
 
-function formatMoney(v: number, currency: string) {
+function formatMoney(v: number) {
     try {
         return new Intl.NumberFormat("es-AR", {
             style: "currency",
-            currency: currency || "ARS",
+            currency: "ARS",
             maximumFractionDigits: 2,
         }).format(v || 0);
     } catch {
-        return `${v?.toFixed?.(2) ?? v} ${currency || ""}`.trim();
+        return `${v?.toFixed?.(2) ?? v} ARS`.trim();
     }
 }

@@ -43,8 +43,8 @@ interface Order {
     };
 }
 
-function money(n: number, currency = "ARS") {
-    return new Intl.NumberFormat("es-AR", { style: "currency", currency })
+function money(n: number) {
+    return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" })
         .format(Number(n || 0));
 }
 
@@ -224,7 +224,7 @@ export default function ConfirmedOrdersPage() {
                 <div class="totals">
                     <div>Subtotal: ${money(order.subtotal)}</div>
                     <div>IVA (21%): ${money(order.taxTotal)}</div>
-                    <div class="total-final">Total: ${money(order.total, order.currency)}</div>
+                    <div class="total-final">Total: ${money(order.total)}</div>
                 </div>
 
                 <div class="footer">
@@ -334,7 +334,7 @@ export default function ConfirmedOrdersPage() {
                                                 <td className="px-4 py-4 text-center">
                                                     <div className="text-sm">
                                                         <div className="font-medium text-[#1C1C1C]">
-                                                            {money(order.total, order.currency)}
+                                                            {money(order.total)}
                                                         </div>
                                                         <div className="text-xs text-[#646464]">
                                                             {order._count.items} item{order._count.items !== 1 ? 's' : ''}

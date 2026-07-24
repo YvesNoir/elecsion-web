@@ -304,17 +304,13 @@ export default function ProductsTable({ products, onImportSuccess, allBrands, se
                         <div className="flex items-center justify-between text-sm">
                             <div className="flex items-center gap-3">
                                 <span className="font-semibold text-[#1C1C1C]">
-                                    {product.currency === 'USD' ? 'U$S' : '$'}{product.priceBase.toLocaleString('es-AR', {
+                                    ${product.priceBase.toLocaleString('es-AR', {
                                         minimumFractionDigits: 2,
                                         maximumFractionDigits: 2
                                     })}
                                 </span>
-                                <span className={`px-2 py-1 text-xs rounded-full font-medium ${
-                                    product.currency === 'USD'
-                                        ? 'bg-green-100 text-green-800'
-                                        : 'bg-blue-100 text-blue-800'
-                                }`}>
-                                    {product.currency === 'USD' ? 'USD' : 'ARS'}
+                                <span className="px-2 py-1 text-xs rounded-full font-medium bg-blue-100 text-blue-800">
+                                    ARS
                                 </span>
                                 {product.taxRate && (
                                     <span className="text-[#646464]">
@@ -371,18 +367,14 @@ export default function ProductsTable({ products, onImportSuccess, allBrands, se
                                         {product.brand?.name || '-'}
                                     </td>
                                     <td className="px-4 py-3 text-right font-mono">
-                                        {product.currency === 'USD' ? 'U$S' : '$'}{product.priceBase.toLocaleString('es-AR', {
+                                        ${product.priceBase.toLocaleString('es-AR', {
                                             minimumFractionDigits: 2,
                                             maximumFractionDigits: 2
                                         })}
                                     </td>
                                     <td className="px-4 py-3 text-center">
-                                        <span className={`inline-flex px-2 py-1 text-xs rounded-full font-medium ${
-                                            product.currency === 'USD'
-                                                ? 'bg-green-100 text-green-800'
-                                                : 'bg-blue-100 text-blue-800'
-                                        }`}>
-                                            {product.currency === 'USD' ? 'USD' : 'ARS'}
+                                        <span className="inline-flex px-2 py-1 text-xs rounded-full font-medium bg-blue-100 text-blue-800">
+                                            ARS
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-right">

@@ -6,19 +6,17 @@ import { useState } from 'react';
 type Props = {
     sku?: string | null;
     priceBase: number | string;   // Prisma.Decimal | number
-    currency: string;             // 'ARS' | 'USD' | ...
 };
 
-function formatMoney(value: number, currency: string) {
-    const cur = currency?.toUpperCase() === 'USD' ? 'USD' : 'ARS';
+function formatMoney(value: number) {
     return new Intl.NumberFormat('es-AR', {
         style: 'currency',
-        currency: cur,
+        currency: 'ARS',
         minimumFractionDigits: 2,
     }).format(value);
 }
 
-export default function AddToCartInline({ sku, priceBase, currency }: Props) {
+export default function AddToCartInline({ sku, priceBase }: Props) {
     const [qty, setQty] = useState<number>(0);
 
     const nPrice = Number(priceBase ?? 0);
@@ -78,7 +76,7 @@ export default function AddToCartInline({ sku, priceBase, currency }: Props) {
                     <div className="text-xs text-[#7a7a7a]">
                         Valor total:{' '}
                         <span className="font-medium text-[#1C1C1C]">
-              {formatMoney(subTotal, currency)}
+              {formatMoney(subTotal)}
             </span>{' '}
                         + IVA
                     </div>

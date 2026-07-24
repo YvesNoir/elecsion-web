@@ -9,12 +9,11 @@ type CartSummaryProps = {
     selectedClientId: string;
 };
 
-function formatMoney(value: number, currency = "ARS") {
+function formatMoney(value: number) {
     const n = Number(value ?? 0);
-    const cur = currency?.toUpperCase() === "USD" ? "USD" : "ARS";
     return new Intl.NumberFormat("es-AR", {
         style: "currency",
-        currency: cur,
+        currency: "ARS",
         minimumFractionDigits: 2,
     }).format(n);
 }
@@ -137,7 +136,7 @@ export default function CartSummary({ selectedClientId }: CartSummaryProps) {
                                         </div>
                                     </div>
                                     <div className="text-sm font-medium text-[#1C1C1C] ml-2">
-                                        {formatMoney(Number(item.price) * Number(item.qty), item.currency)}
+                                        {formatMoney(Number(item.price) * Number(item.qty))}
                                     </div>
                                 </div>
 

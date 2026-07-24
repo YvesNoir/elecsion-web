@@ -4,7 +4,6 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import CartToggleButton from "@/components/cart/CartToggleButton";
-import ExchangeRateDisplay from "@/components/ExchangeRateDisplay";
 
 type HeaderProps = {
     className?: string;
@@ -72,11 +71,6 @@ export default function Header({ className }: HeaderProps) {
 
                     {/* Elementos derecha */}
                     <div className="flex items-center gap-2 md:gap-6">
-                        {/* Cotización del dólar - Solo desktop */}
-                        <div className="hidden md:block">
-                            <ExchangeRateDisplay />
-                        </div>
-
                         {/* Mi cuenta / Login - Solo desktop */}
                         <div className="hidden md:block">
                             <Link
@@ -122,11 +116,6 @@ export default function Header({ className }: HeaderProps) {
 
                             {/* Separador */}
                             <div className="border-t border-[#E5E5E5] my-3"></div>
-
-                            {/* Cotización móvil */}
-                            <div className="px-4">
-                                <ExchangeRateDisplay />
-                            </div>
 
                             {/* Mi cuenta / Login */}
                             <Link

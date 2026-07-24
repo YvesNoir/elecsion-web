@@ -1,17 +1,15 @@
 // src/components/catalog/ProductCardRow.tsx
 "use client";
 
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState } from "react";
 import { useCart } from "@/store/cart";
 import { getProductImageUrls } from "@/lib/utils/image";
-import { useExchangeRate } from "@/hooks/useExchangeRate";
 
 type Props = {
     sku: string | null;
     name: string;
     unit?: string | null;
     priceBase: number;
-    currency: string;
     taxRate?: number | null;
     brand?: {
         name: string;
@@ -20,22 +18,13 @@ type Props = {
     isLoggedIn: boolean;
 };
 
-function formatMoney(value: number, currency: string) {
+function formatMoney(value: number) {
     const n = Number(value ?? 0);
-    const cur = currency?.toUpperCase() === "USD" ? "USD" : "ARS";
     return new Intl.NumberFormat("es-AR", {
         style: "currency",
-        currency: cur,
+        currency: "ARS",
         minimumFractionDigits: 2,
     }).format(n);
-}
-
-function formatUSD(value: number) {
-    return `U$S ${Number(value ?? 0).toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
-}
-
-function formatARS(value: number) {
-    return `$ ${Number(value ?? 0).toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
 }
 
 export default function ProductCardRow({
@@ -43,7 +32,6 @@ export default function ProductCardRow({
                                            name,
                                            unit,
                                            priceBase,
-                                           currency,
                                            taxRate,
                                            brand,
                                            isLoggedIn,
@@ -53,7 +41,6 @@ export default function ProductCardRow({
     const addItem = cart?.addItem as
         | ((p: { sku: string; name: string; price: number; currency: string; unit?: string }, qty: number) => void)
         | undefined;
-    const { getCartPrice } = useExchangeRate();
     const cartLines: Array<{ sku: string; qty: number }> = Array.isArray(cart?.lines)
         ? cart.lines
         : Array.isArray(cart?.items)
@@ -65,38 +52,8 @@ export default function ProductCardRow({
     );
 
     const [qty, setQty] = useState(0);
-    const [exchangeRate, setExchangeRate] = useState<{ sell: number } | null>(null);
-    const [isLoadingExchange, setIsLoadingExchange] = useState(false);
-
-    // Obtener cotización BNA para productos USD
-    useEffect(() => {
-        if (currency?.toUpperCase() === 'USD') {
-            setIsLoadingExchange(true);
-            fetch('/api/exchange-rate')
-                .then(res => res.json())
-                .then(data => {
-                    if (data.sell) {
-                        setExchangeRate(data);
-                    }
-                })
-                .catch(err => console.error('Error fetching exchange rate:', err))
-                .finally(() => setIsLoadingExchange(false));
-        }
-    }, [currency]);
-
-
     const ivaPct = Number(taxRate ?? 0);
     const total = useMemo(() => Number(priceBase ?? 0) * qty, [priceBase, qty]);
-    
-    // Calcular precio en pesos para productos USD
-    const priceInARS = useMemo(() => {
-        if (currency?.toUpperCase() === 'USD' && exchangeRate?.sell) {
-            return Number(priceBase) * exchangeRate.sell;
-        }
-        return null;
-    }, [priceBase, currency, exchangeRate]);
-
-    const isUSD = currency?.toUpperCase() === 'USD';
 
     const normalizedSku = (sku ?? "").trim();
     const imageUrls = getProductImageUrls(normalizedSku);
@@ -108,14 +65,13 @@ export default function ProductCardRow({
     const add = () => {
         if (!normalizedSku || qty < 1) return;
         if (typeof addItem === "function") {
-            const cartPrice = getCartPrice(Number(priceBase), currency);
             addItem(
                 {
                     id: normalizedSku,
                     sku: normalizedSku,
                     name,
-                    price: cartPrice.price, // Convertido a ARS
-                    currency: cartPrice.currency, // Siempre ARS
+                    price: Number(priceBase),
+                    currency: "ARS",
                     unit: unit ?? undefined
                 },
                 qty
@@ -178,27 +134,9 @@ export default function ProductCardRow({
                     <div className="mt-1">
                         {isLoggedIn ? (
                             <div>
-                                {isUSD ? (
-                                    <div>
-                                        <div className="font-medium text-[#1C1C1C]">
-                                            {formatUSD(priceBase)}
-                                        </div>
-                                        {isLoadingExchange ? (
-                                            <div className="text-xs text-[#646464] mt-0.5 flex items-center gap-1">
-                                                <div className="w-3 h-3 border border-gray-300 border-t-[#384A93] rounded-full animate-spin"></div>
-                                                Obteniendo cotización...
-                                            </div>
-                                        ) : priceInARS ? (
-                                            <div className="text-xs text-[#646464] mt-0.5">
-                                                Precio en pesos: {formatARS(priceInARS)}
-                                            </div>
-                                        ) : null}
-                                    </div>
-                                ) : (
-                                    <div className="font-medium text-[#1C1C1C]">
-                                        {formatMoney(priceBase, currency)}
-                                    </div>
-                                )}
+                                <div className="font-medium text-[#1C1C1C]">
+                                    {formatMoney(priceBase)}
+                                </div>
                             </div>
                         ) : (
                             <span className="text-[#384A93] text-sm">Consultar</span>
@@ -237,7 +175,7 @@ export default function ProductCardRow({
                         {isLoggedIn ? (
                             <>
                                 Valor total:{" "}
-                                <span className="font-medium text-[#1C1C1C]">{formatMoney(total, currency)}</span>{" "}
+                                <span className="font-medium text-[#1C1C1C]">{formatMoney(total)}</span>{" "}
                                 <span className="text-xs">+ IVA</span>
                             </>
                         ) : (

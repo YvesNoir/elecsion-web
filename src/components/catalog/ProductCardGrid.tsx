@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useCart } from "@/store/cart";
-import { useExchangeRate } from "@/hooks/useExchangeRate";
 import ProductImage from "@/components/ProductImage";
 
 type ProductCardGridProps = {
@@ -10,13 +9,12 @@ type ProductCardGridProps = {
     name: string;
     unit: string | null;
     priceBase: number;
-    currency: string;
     taxRate: number | null;
     isLoggedIn: boolean;
 };
 
-function money(n: number, currency = "ARS") {
-    return new Intl.NumberFormat("es-AR", { style: "currency", currency })
+function money(n: number) {
+    return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" })
         .format(Number(n || 0));
 }
 
@@ -25,13 +23,11 @@ export default function ProductCardGrid({
     name,
     unit,
     priceBase,
-    currency,
     taxRate,
     isLoggedIn,
 }: ProductCardGridProps) {
     const [qty, setQty] = useState(0);
     const { addItem } = useCart();
-    const { getCartPrice } = useExchangeRate();
 
     const normalizedSku = sku || "N/A";
 
@@ -41,15 +37,13 @@ export default function ProductCardGrid({
             return;
         }
 
-        const cartPrice = getCartPrice(Number(priceBase), currency);
-
         addItem(
             {
                 id: normalizedSku,
                 sku: normalizedSku,
                 name,
-                price: cartPrice.price,
-                currency: cartPrice.currency,
+                price: Number(priceBase),
+                currency: "ARS",
                 unit: unit ?? undefined,
             },
             qty
@@ -94,7 +88,7 @@ export default function ProductCardGrid({
                 {/* Precio */}
                 <div className="mb-3">
                     <div className="text-lg font-semibold text-[#1C1C1C]">
-                        {isLoggedIn ? money(priceBase, currency) : (
+                        {isLoggedIn ? money(priceBase) : (
                             <span className="text-[#384A93] text-base">Consultar</span>
                         )}
                     </div>
