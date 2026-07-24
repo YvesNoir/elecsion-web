@@ -300,7 +300,6 @@ export default function CatalogClient({
                                                     name={p.name}
                                                     unit={p.unit}
                                                     priceBase={p.priceBase}
-                                                    currency={p.currency}
                                                     taxRate={p.taxRate}
                                                                     brand={p.brand}
                                                     isLoggedIn={isLoggedIn}
@@ -319,7 +318,6 @@ export default function CatalogClient({
                                                     name={p.name}
                                                     unit={p.unit}
                                                     priceBase={p.priceBase}
-                                                    currency={p.currency}
                                                     taxRate={p.taxRate}
                                                                     isLoggedIn={isLoggedIn}
                                                 />

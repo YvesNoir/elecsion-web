@@ -22,8 +22,8 @@ function roleLabel(role?: string) {
     }
 }
 
-function money(n: number, currency = "ARS") {
-    return new Intl.NumberFormat("es-AR", { style: "currency", currency })
+function money(n: number) {
+    return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" })
         .format(Number(n || 0));
 }
 

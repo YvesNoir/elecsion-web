@@ -94,7 +94,7 @@ export default async function BuscarPage(
                                 className="w-full h-36 object-cover mt-2 rounded border border-[#B5B5B5]/30"
                             />
 
-                            <div className="mt-2 text-sm text-[#1C1C1C]">{priceText} {p.currency}</div>
+                            <div className="mt-2 text-sm text-[#1C1C1C]">{priceText} ARS</div>
 
                             <div className="mt-2 flex gap-2">
                                 <Link

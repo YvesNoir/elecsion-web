@@ -102,8 +102,8 @@ export default function SearchButton() {
         setSearchTerm(e.target.value);
     };
 
-    const money = (n: number, currency = "ARS") => {
-        return new Intl.NumberFormat("es-AR", { style: "currency", currency })
+    const money = (n: number) => {
+        return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" })
             .format(Number(n || 0));
     };
 
@@ -205,7 +205,7 @@ export default function SearchButton() {
                                                     </div>
                                                 </div>
                                                 <div className="text-sm font-semibold text-[#1C1C1C] ml-4">
-                                                    {money(product.priceBase, product.currency)}
+                                                    {money(product.priceBase)}
                                                 </div>
                                             </div>
                                         </Link>

@@ -8,7 +8,7 @@ export type CartLine = {
     sku: string;
     name: string;
     price: number;
-    currency: string; // "ARS" | "USD"
+    currency: string; // "ARS"
     unit?: string;
     qty: number;
 };

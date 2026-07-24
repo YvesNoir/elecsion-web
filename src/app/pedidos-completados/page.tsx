@@ -45,8 +45,8 @@ interface Order {
     items: OrderItem[];
 }
 
-function money(n: number, currency = "ARS") {
-    return new Intl.NumberFormat("es-AR", { style: "currency", currency })
+function money(n: number) {
+    return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" })
         .format(Number(n || 0));
 }
 
@@ -230,7 +230,7 @@ export default function CompletedOrdersPage() {
                 <div class="totals">
                     <div>Subtotal: ${money(order.subtotal || order.total / 1.21)}</div>
                     <div>IVA (21%): ${money(order.taxTotal || order.total - (order.total / 1.21))}</div>
-                    <div class="total-final">Total: ${money(order.total, order.currency)}</div>
+                    <div class="total-final">Total: ${money(order.total)}</div>
                 </div>
 
                 <div class="footer">
