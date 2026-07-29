@@ -94,6 +94,30 @@ model Product {
   @@map("Product")
 }
 
+/// Precios y artículos obtenidos desde la API de Tango.
+/// Se conserva una fila por artículo y lista de precios.
+model ProductsTango {
+  id                    String   @id @default(cuid())
+  articleCode           String   @map("article_code")
+  description           String
+  additionalDescription String?  @map("additional_description")
+  priceListCode         String   @map("price_list_code")
+  priceListDescription  String?  @map("price_list_description")
+  price                 Decimal  @db.Decimal(18, 4)
+  currency              String   @default("ARS")
+  includesVat           Boolean? @map("includes_vat")
+  includesTaxes         Boolean? @map("includes_taxes")
+  rawData               Json?    @map("raw_data")
+  fetchedAt             DateTime @default(now()) @map("fetched_at")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@unique([articleCode, priceListCode])
+  @@index([articleCode])
+  @@index([priceListCode])
+  @@map("products_tango")
+}
+
 model ProductImage {
   id        String  @id @default(cuid())
   productId String  @map("product_id")
@@ -268,9 +292,9 @@ model ExchangeRate {
 }
 
 model Counter {
-  id      String @id @default(cuid())
-  name    String @unique
-  value   Int    @default(0)
+  id        String   @id @default(cuid())
+  name      String   @unique
+  value     Int      @default(0)
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("Counter")
