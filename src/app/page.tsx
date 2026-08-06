@@ -1,18 +1,14 @@
 // src/app/page.tsx
-import { prisma } from "@/lib/db";
-import SearchBar from "@/components/SearchBar";
 import HomeCatalogPanel from "@/components/catalog/HomeCatalogPanel";
 import HeroSlider from "@/components/HeroSlider";
 import BrandCarousel from "@/components/BrandCarousel";
+import { getTangoBrands } from "@/lib/products-tango";
 
 export const revalidate = 60; // revalidar la lista de marcas cada 60s (opcional)
 
 export default async function HomePage() {
     // Traemos marcas (solo lo necesario para el panel)
-    const brands = await prisma.brand.findMany({
-        orderBy: { name: "asc" },
-        select: { id: true, name: true, slug: true },
-    });
+    const brands = await getTangoBrands();
 
     return (
         <>

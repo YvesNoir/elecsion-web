@@ -1,6 +1,6 @@
 // src/components/BrandsDropdown.tsx
-import { prisma } from "@/lib/db";
 import BrandsDropdownClient from "./BrandsDropdownClient";
+import { getTangoBrands } from "@/lib/products-tango";
 
 type Props = {
     gradientFrom?: string;
@@ -8,10 +8,7 @@ type Props = {
 };
 
 export default async function BrandsDropdown({ gradientFrom, gradientTo }: Props) {
-    const brands = await prisma.brand.findMany({
-        orderBy: { name: "asc" },
-        select: { id: true, name: true, slug: true },
-    });
+    const brands = await getTangoBrands();
 
     return (
         <BrandsDropdownClient

@@ -6,6 +6,9 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 export type CartLine = {
     id: string;
     sku: string;
+    articleCode?: string;
+    imageCodes?: string[];
+    imageUrl?: string;
     name: string;
     price: number;
     currency: string; // "ARS"

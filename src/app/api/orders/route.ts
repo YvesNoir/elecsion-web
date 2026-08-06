@@ -4,9 +4,12 @@ import { OrderType, OrderStatus, Prisma } from "@prisma/client";
 import { getSession } from "@/lib/session";
 import { sendEmail, emailTemplates } from "@/lib/email";
 import { generateQuoteCode, generateOrderCode } from "@/lib/counter";
+import { TANGO_WEB_PRICE_LIST_CODE, displayProductCode } from "@/lib/products-tango";
 
 type Body = {
-    items: Array<{ productId: string; qty: number }>;
+    items?: Array<{ productId: string; qty: number }>;
+    productId?: string;
+    quantity?: number;
     contact?: { name?: string; email?: string; phone?: string; message?: string };
     clientId?: string; // Para pedidos rápidos desde admin/vendedor
 };
@@ -15,8 +18,13 @@ export async function POST(req: Request) {
     try {
         const session = await getSession();
         const body = (await req.json()) as Body;
+        const items = body.items?.length
+            ? body.items
+            : body.productId
+                ? [{ productId: body.productId, qty: body.quantity ?? 1 }]
+                : [];
 
-        if (!Array.isArray(body.items) || body.items.length === 0) {
+        if (items.length === 0) {
             return NextResponse.json({ error: "Sin items" }, { status: 400 });
         }
 
@@ -34,7 +42,7 @@ export async function POST(req: Request) {
                     quotePhone: body.contact?.phone ?? null,
                     quoteMessage: body.contact?.message ?? null,
                     items: {
-                        create: body.items.map((it) => ({
+                        create: items.map((it) => ({
                             productId: it.productId,
                             name: "(producto)",
                             quantity: new Prisma.Decimal(it.qty ?? 0),
@@ -93,18 +101,28 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Debes especificar un cliente para el pedido" }, { status: 400 });
         }
 
-        const ids = body.items.map((x) => x.productId);
-        const products = await prisma.product.findMany({
-            where: { id: { in: ids }, isActive: true },
-            select: { id: true, name: true, priceBase: true, taxRate: true, unit: true },
+        const ids = items.map((x) => x.productId);
+        const products = await prisma.productsTango.findMany({
+            where: {
+                articleCode: { in: ids },
+                priceListCode: TANGO_WEB_PRICE_LIST_CODE,
+                isActive: true,
+            },
+            select: {
+                articleCode: true,
+                synonym: true,
+                description: true,
+                price: true,
+                taxRate: true,
+            },
         });
 
         let subtotal = new Prisma.Decimal(0);
         let tax = new Prisma.Decimal(0);
         let total = new Prisma.Decimal(0);
 
-        const itemsCreate = body.items.map((it) => {
-            const p = products.find((pp) => pp.id === it.productId);
+        const itemsCreate = items.map((it) => {
+            const p = products.find((pp) => pp.articleCode === it.productId);
             const q = new Prisma.Decimal(it.qty ?? 0);
 
             if (!p) {
@@ -122,7 +140,7 @@ export async function POST(req: Request) {
                 };
             }
 
-            const base = new Prisma.Decimal(p.priceBase ?? 0);
+            const base = new Prisma.Decimal(p.price ?? 0);
             const rate = new Prisma.Decimal(p.taxRate ?? 0);
 
             const lineSubtotal = base.mul(q);
@@ -134,10 +152,10 @@ export async function POST(req: Request) {
             total = total.add(lineTotal);
 
             return {
-                productId: p.id,
-                name: p.name,
-                sku: null,
-                unit: p.unit ?? null,
+                productId: p.articleCode,
+                name: p.description,
+                sku: displayProductCode(p.synonym, p.articleCode),
+                unit: null,
                 quantity: q,
                 unitPrice: base,
                 taxRate: rate,

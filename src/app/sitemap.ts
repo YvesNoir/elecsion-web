@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next'
 import { prisma } from '@/lib/db'
+import { getTangoBrands, TANGO_WEB_PRICE_LIST_CODE } from '@/lib/products-tango'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://www.elecsion.com'
@@ -28,74 +29,36 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     // Obtener todas las marcas activas con productos activos
-    const brands = await prisma.brand.findMany({
-      where: {
-        isActive: true,
-        products: {
-          some: {
-            isActive: true,
-            isDeleted: false
-          }
-        }
-      },
-      select: {
-        slug: true,
-        createdAt: true,
-        _count: {
-          select: {
-            products: {
-              where: {
-                isActive: true,
-                isDeleted: false
-              }
-            }
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    })
+    const brands = await getTangoBrands()
 
     // Generar URLs por marca
     const brandRoutes: MetadataRoute.Sitemap = brands.map((brand) => ({
       url: `${baseUrl}/catalogo?brand=${brand.slug}`,
-      lastModified: brand.createdAt,
+      lastModified: new Date(),
       changeFrequency: 'weekly' as const,
-      priority: brand._count.products > 50 ? 0.8 : 0.6, // Prioridad más alta para marcas con más productos
+      priority: brand._count.products > 50 ? 0.8 : 0.6,
     }))
 
     // Obtener productos destacados o más recientes (limitamos para no hacer el sitemap muy grande)
-    const featuredProducts = await prisma.product.findMany({
+    const featuredProducts = await prisma.productsTango.findMany({
       where: {
+        priceListCode: TANGO_WEB_PRICE_LIST_CODE,
         isActive: true,
-        isDeleted: false,
-        OR: [
-          { isFeatured: true },
-          { updatedAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } } // Productos actualizados en los últimos 30 días
-        ]
       },
       select: {
-        sku: true,
+        articleCode: true,
+        synonym: true,
         updatedAt: true,
-        brand: {
-          select: {
-            slug: true
-          }
-        }
+        brandName: true,
       },
       take: 500, // Limitamos a 500 productos para no saturar el sitemap
-      orderBy: [
-        { isFeatured: 'desc' },
-        { updatedAt: 'desc' }
-      ]
+      orderBy: { updatedAt: 'desc' }
     })
 
     // Generar URLs de productos (usando SKU si está disponible)
     const productRoutes: MetadataRoute.Sitemap = featuredProducts
-      .filter(product => product.sku) // Solo productos con SKU
       .map((product) => ({
-        url: `${baseUrl}/catalogo?brand=${product.brand?.slug}&search=${encodeURIComponent(product.sku!)}`,
+        url: `${baseUrl}/producto/${encodeURIComponent(product.articleCode)}`,
         lastModified: product.updatedAt,
         changeFrequency: 'weekly' as const,
         priority: 0.4,

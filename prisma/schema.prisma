@@ -100,11 +100,16 @@ model ProductsTango {
   id                    String   @id @default(cuid())
   articleCode           String   @map("article_code")
   description           String
+  synonym               String?
   additionalDescription String?  @map("additional_description")
   priceListCode         String   @map("price_list_code")
   priceListDescription  String?  @map("price_list_description")
   price                 Decimal  @db.Decimal(18, 4)
   currency              String   @default("ARS")
+  stockQty              Decimal? @map("stock_qty") @db.Decimal(18, 4)
+  taxRate               Decimal? @map("tax_rate") @db.Decimal(9, 6)
+  isActive              Boolean  @default(true) @map("is_active")
+  brandName             String?  @map("brand_name")
   includesVat           Boolean? @map("includes_vat")
   includesTaxes         Boolean? @map("includes_taxes")
   rawData               Json?    @map("raw_data")

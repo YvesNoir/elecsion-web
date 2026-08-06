@@ -1,11 +1,8 @@
-import { prisma } from "@/lib/db";
 import CatalogSheetClient from "./CatalogSheetClient";
+import { getTangoBrands } from "@/lib/products-tango";
 
 export default async function CatalogSheet() {
-    const brands = await prisma.brand.findMany({
-        orderBy: { name: "asc" },
-        select: { id: true, name: true, slug: true, _count: { select: { products: true } } },
-    });
+    const brands = await getTangoBrands();
 
     const data = brands.map((b) => ({
         id: b.id,

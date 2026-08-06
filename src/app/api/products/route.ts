@@ -1,88 +1,57 @@
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { json } from "@/lib/json";
+import {
+    getTangoBrandNameBySlug,
+    mapTangoProduct,
+    TANGO_WEB_PRICE_LIST_CODE,
+} from "@/lib/products-tango";
 
 export async function GET(req: Request) {
-    const { searchParams } = new URL(req.url);
-    const page = Number(searchParams.get("page") ?? "1");
-    const pageSize = Math.min(Number(searchParams.get("pageSize") ?? "20"), 100);
-    const limit = Math.min(Number(searchParams.get("limit") ?? pageSize), 100);
-    const offset = (page - 1) * pageSize;
-    const brand = searchParams.get("brand");
-    const category = searchParams.get("category");
-
-    const where: any = { isActive: true, isDeleted: false };
-
-    // Filtro por marca - puede ser slug o ID
-    if (brand) {
-        // Si es un UUID/cuid (contiene caracteres que no serían un slug normal), usar brandId directamente
-        if (/^[a-z0-9]{25}$/.test(brand) || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(brand)) {
-            where.brandId = brand;
-        } else {
-            // Si no es UUID, asumir que es slug
-            where.brand = { slug: brand };
-        }
-    }
-
-    if (category) where.category = { slug: category };
-
     try {
-        // Si hay limit pero no page, usar limit directo con offset (para pedido-rapido)
-        if (searchParams.has("limit") && !searchParams.has("page")) {
-            const offsetValue = Number(searchParams.get("offset") ?? "0");
+        const { searchParams } = new URL(req.url);
+        const page = Number(searchParams.get("page") ?? "1");
+        const pageSize = Math.min(Number(searchParams.get("pageSize") ?? "20"), 100);
+        const limit = Math.min(Number(searchParams.get("limit") ?? pageSize), 100);
+        const offset = searchParams.has("limit") && !searchParams.has("page")
+            ? Number(searchParams.get("offset") ?? "0")
+            : (page - 1) * pageSize;
+        const brandSlug = searchParams.get("brand");
 
-            const [products, total] = await Promise.all([
-                prisma.product.findMany({
-                    where,
-                    take: limit,
-                    skip: offsetValue,
-                    orderBy: { updatedAt: "desc" },
-                    select: {
-                        id: true,
-                        sku: true,
-                        name: true,
-                        priceBase: true,
-                        currency: true,
-                        stockQty: true,
-                        unit: true,
-                        brand: {
-                            select: {
-                                name: true,
-                                slug: true
-                            }
-                        }
-                    }
-                }),
-                prisma.product.count({ where })
-            ]);
-
-            const serializedProducts = products.map(product => ({
-                id: product.id,
-                sku: product.sku,
-                name: product.name,
-                priceBase: Number(product.priceBase || 0),
-                currency: product.currency || "ARS",
-                stockQty: product.stockQty ? Number(product.stockQty) : 0,
-                unit: product.unit,
-                brand: product.brand
-            }));
-
-            return json({ products: serializedProducts, total }, { status: 200 });
+        const brandName = brandSlug ? await getTangoBrandNameBySlug(brandSlug) : null;
+        if (brandSlug && !brandName) {
+            return NextResponse.json({ products: [], total: 0 });
         }
 
-        // Paginación normal
-        const [items, total] = await Promise.all([
-            prisma.product.findMany({
+        const where = {
+            priceListCode: TANGO_WEB_PRICE_LIST_CODE,
+            isActive: true,
+            ...(brandName ? { brandName } : {}),
+        };
+
+        const [rows, total] = await Promise.all([
+            prisma.productsTango.findMany({
                 where,
-                take: pageSize,
+                orderBy: [{ articleCode: "asc" }],
+                take: limit,
                 skip: offset,
-                orderBy: { updatedAt: "desc" },
-                include: { brand: true, category: true, images: { orderBy: { position: "asc" }, take: 1 } },
+                select: {
+                    articleCode: true,
+                    synonym: true,
+                    description: true,
+                    price: true,
+                    currency: true,
+                    stockQty: true,
+                    taxRate: true,
+                    brandName: true,
+                },
             }),
-            prisma.product.count({ where }),
+            prisma.productsTango.count({ where }),
         ]);
-        return json({ items, total }, { status: 200 });
-    } catch (err: any) {
-        console.error("GET /api/products error:", err);
-        return json({ error: "Internal error", detail: err?.message }, { status: 500 });
+
+        const products = rows.map(mapTangoProduct);
+        return NextResponse.json({ products, total });
+    } catch (error) {
+        console.error("GET /api/products error:", error);
+        return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
     }
 }

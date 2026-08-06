@@ -3,14 +3,7 @@ import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { sendEmail, emailTemplates } from "@/lib/email";
 import { generateQuoteCode } from "@/lib/counter";
-
-interface CartItem {
-    id: string;
-    name: string;
-    price: number;
-    quantity: number;
-    sku?: string;
-}
+import { displayProductCode, TANGO_WEB_PRICE_LIST_CODE } from "@/lib/products-tango";
 
 export async function POST(request: NextRequest) {
     try {
@@ -64,20 +57,28 @@ export async function POST(request: NextRequest) {
         const productSkus = items.map(item => item.sku).filter(Boolean);
 
         // Buscar todos los productos de una vez
-        const products = await prisma.product.findMany({
+        const products = await prisma.productsTango.findMany({
             where: {
+                priceListCode: TANGO_WEB_PRICE_LIST_CODE,
+                isActive: true,
                 OR: [
-                    { id: { in: productIds } },
-                    { sku: { in: productSkus } }
+                    { articleCode: { in: productIds } },
+                    { synonym: { in: productSkus } }
                 ]
-            }
+            },
+            select: {
+                articleCode: true,
+                synonym: true,
+                description: true,
+                price: true,
+            },
         });
 
         // Crear mapa para búsqueda rápida
         const productMap = new Map();
         products.forEach(product => {
-            productMap.set(product.id, product);
-            productMap.set(product.sku, product);
+            productMap.set(product.articleCode, product);
+            if (product.synonym) productMap.set(product.synonym, product);
         });
 
         let subtotal = 0;
@@ -99,16 +100,16 @@ export async function POST(request: NextRequest) {
 
             // IMPORTANTE: Usar el precio que viene del carrito (ya convertido a ARS)
             // en lugar del precio original de la base de datos
-            const unitPrice = item.price || Number(product.priceBase);
+            const unitPrice = item.price || Number(product.price);
             const itemSubtotal = unitPrice * item.quantity;
             subtotal += itemSubtotal;
 
             orderItems.push({
-                productId: product.id,
-                sku: product.sku,
-                name: product.name,
+                productId: product.articleCode,
+                sku: displayProductCode(product.synonym, product.articleCode),
+                name: product.description,
                 quantity: item.quantity,
-                unit: product.unit || "unidad",
+                unit: "unidad",
                 unitPrice: unitPrice, // Precio ya convertido del carrito
                 subtotal: itemSubtotal,
                 total: itemSubtotal // Sin impuestos por ahora
@@ -194,7 +195,7 @@ export async function POST(request: NextRequest) {
                 : null;
 
             // Preparar lista de destinatarios para vendedores/admins
-            const recipients = [];
+            const recipients: string[] = [];
             if (seller?.email) {
                 recipients.push(seller.email);
             }

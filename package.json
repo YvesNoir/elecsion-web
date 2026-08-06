@@ -10,6 +10,7 @@
     "prisma:seed": "tsx prisma/seed.ts",
     "import:xlsx": "tsx scripts/import-from-xlsx.ts",
     "sync:products-tango": "tsx scripts/sync-products-tango.ts",
+    "sync:products-tango-sheet": "tsx scripts/sync-products-tango-sheet.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -20,6 +21,7 @@
     "@types/nodemailer": "^7.0.2",
     "@vercel/speed-insights": "^1.2.0",
     "bcryptjs": "^3.0.2",
+    "googleapis": "^174.0.1",
     "jose": "^6.1.0",
     "next": "^15.5.7",
     "next-auth": "^4.24.11",

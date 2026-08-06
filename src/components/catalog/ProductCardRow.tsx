@@ -7,6 +7,8 @@ import { getProductImageUrls } from "@/lib/utils/image";
 
 type Props = {
     sku: string | null;
+    articleCode?: string | null;
+    imageCodes?: string[];
     name: string;
     unit?: string | null;
     priceBase: number;
@@ -29,6 +31,8 @@ function formatMoney(value: number) {
 
 export default function ProductCardRow({
                                            sku,
+                                           articleCode,
+                                           imageCodes,
                                            name,
                                            unit,
                                            priceBase,
@@ -39,7 +43,7 @@ export default function ProductCardRow({
     // carrito tolerante a distintas implementaciones
     const cart = useCart() as any;
     const addItem = cart?.addItem as
-        | ((p: { sku: string; name: string; price: number; currency: string; unit?: string }, qty: number) => void)
+        | ((p: { id: string; sku: string; articleCode: string; imageCodes: string[]; name: string; price: number; currency: string; unit?: string }, qty: number) => void)
         | undefined;
     const cartLines: Array<{ sku: string; qty: number }> = Array.isArray(cart?.lines)
         ? cart.lines
@@ -56,7 +60,9 @@ export default function ProductCardRow({
     const total = useMemo(() => Number(priceBase ?? 0) * qty, [priceBase, qty]);
 
     const normalizedSku = (sku ?? "").trim();
-    const imageUrls = getProductImageUrls(normalizedSku);
+    const internalCode = (articleCode ?? normalizedSku).trim();
+    const imageLookupCodes = imageCodes?.length ? imageCodes : [normalizedSku, internalCode];
+    const imageUrls = getProductImageUrls(imageLookupCodes);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
     const dec = () => setQty((q) => Math.max(0, q - 1));
@@ -67,8 +73,10 @@ export default function ProductCardRow({
         if (typeof addItem === "function") {
             addItem(
                 {
-                    id: normalizedSku,
+                    id: internalCode,
                     sku: normalizedSku,
+                    articleCode: internalCode,
+                    imageCodes: imageLookupCodes,
                     name,
                     price: Number(priceBase),
                     currency: "ARS",

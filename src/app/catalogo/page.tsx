@@ -1,12 +1,16 @@
-// src/app/catalogo/page.tsx
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import CatalogClient from "@/components/catalog/CatalogClient";
+import {
+    getTangoBrandNameBySlug,
+    getTangoBrands,
+    mapTangoProduct,
+    TANGO_WEB_PRICE_LIST_CODE,
+} from "@/lib/products-tango";
 
 export const revalidate = 30;
 
 type Props = {
-    // En Next 15 searchParams es async
     searchParams: Promise<{ brand?: string; page?: string; search?: string }>;
 };
 
@@ -18,91 +22,49 @@ export default async function CatalogoPage({ searchParams }: Props) {
     const currentPage = parseInt(params?.page ?? "1", 10);
     const productsPerPage = 30;
     const skip = (currentPage - 1) * productsPerPage;
+    const selectedBrandName = currentSlug ? await getTangoBrandNameBySlug(currentSlug) : null;
+    const brands = await getTangoBrands();
+    const selectedBrand = brands.find((brand) => brand.slug === currentSlug) ?? null;
 
-    const brandsRaw = await prisma.brand.findMany({
-        where: {
-            isActive: true  // Solo marcas activas
-        },
-        orderBy: { name: "asc" },
-        select: {
-            id: true,
-            name: true,
-            slug: true,
-            _count: {
-                select: {
-                    products: {
-                        where: { isActive: true, isDeleted: false }
-                    }
-                }
-            },
-        },
-    });
-
-    // Filtrar marcas que tienen al menos 1 producto activo
-    const brands = brandsRaw.filter(brand => brand._count.products > 0);
-
-    const selectedBrand = brands.find((b) => b.slug === currentSlug) ?? null;
-
-    // Construir condiciones de búsqueda (SQLite no soporta mode: "insensitive")
-    const searchConditions = searchTerm ? {
-        OR: [
-            { sku: { contains: searchTerm } },
-            { name: { contains: searchTerm } },
-            { description: { contains: searchTerm } },
-        ]
-    } : {};
-
-    // Construir filtros base
     const baseFilter = {
+        priceListCode: TANGO_WEB_PRICE_LIST_CODE,
         isActive: true,
-        isDeleted: false,
-        ...(selectedBrand && { brandId: selectedBrand.id }),
-        ...searchConditions,
+        ...(selectedBrandName ? { brandName: selectedBrandName } : {}),
+        ...(searchTerm ? {
+            OR: [
+                { articleCode: { contains: searchTerm, mode: "insensitive" as const } },
+                { synonym: { contains: searchTerm, mode: "insensitive" as const } },
+                { description: { contains: searchTerm, mode: "insensitive" as const } },
+                { brandName: { contains: searchTerm, mode: "insensitive" as const } },
+            ],
+        } : {}),
     };
 
-    // Obtener el total de productos para la paginación
-    const totalProducts = await prisma.product.count({
-        where: baseFilter,
-    });
+    const [totalProducts, rawProducts] = await Promise.all([
+        prisma.productsTango.count({ where: baseFilter }),
+        prisma.productsTango.findMany({
+            where: baseFilter,
+            orderBy: [{ articleCode: "asc" }],
+            skip,
+            take: productsPerPage,
+            select: {
+                articleCode: true,
+                synonym: true,
+                description: true,
+                price: true,
+                currency: true,
+                stockQty: true,
+                taxRate: true,
+                brandName: true,
+            },
+        }),
+    ]);
 
+    const products = rawProducts.map(mapTangoProduct);
     const totalPages = Math.ceil(totalProducts / productsPerPage);
 
-    const rawProducts = await prisma.product.findMany({
-        where: baseFilter,
-        orderBy: [{ sku: "asc" }, { name: "asc" }],
-        skip,
-        take: productsPerPage,
-        select: {
-            id: true,
-            sku: true,
-            name: true,
-            unit: true,
-            priceBase: true,  // Prisma.Decimal
-            currency: true,
-            taxRate: true,    // Prisma.Decimal | null
-            brand: {
-                select: {
-                    name: true,
-                    slug: true,
-                }
-            },
-        },
-    });
-
-    // <<<<<<<<<< IMPORTANTÍSIMO: serializamos a number >>>>>>>>>>
-    const products = rawProducts.map((p) => ({
-        id: p.id,
-        sku: p.sku,
-        name: p.name,
-        unit: p.unit,
-        priceBase: p.priceBase ? Number(p.priceBase) : 0,
-        currency: p.currency ?? "ARS",
-        taxRate: p.taxRate === null ? null : Number(p.taxRate),
-        brand: p.brand,
-    }));
-
     return (
-        <CatalogClient 
+        <CatalogClient
             brands={brands}
             products={products}
             selectedBrand={selectedBrand}

@@ -5,6 +5,8 @@ import { useCart } from "@/store/cart";
 
 type Product = {
     id: string;
+    articleCode?: string;
+    imageCodes?: string[];
     sku: string | null;
     name: string;
     priceBase: number;
@@ -76,8 +78,10 @@ export default function ProductSearchTable({ products, loading, selectedClientId
         if (typeof addItem === "function") {
             addItem(
                 {
-                    id: product.sku || product.id,
+                    id: product.articleCode || product.id,
                     sku: product.sku || product.id,
+                    articleCode: product.articleCode || product.id,
+                    imageCodes: product.imageCodes,
                     name: product.name,
                     price: Number(product.priceBase),
                     currency: 'ARS',
