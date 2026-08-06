@@ -37,6 +37,7 @@ interface Order {
         phone: string | null;
     } | null;
     sellerUser: {
+        id: string;
         name: string;
         email: string;
     } | null;
@@ -51,21 +52,15 @@ function money(n: number) {
         .format(Number(n || 0));
 }
 
-function formatDate(dateString: string) {
-    return new Date(dateString).toLocaleDateString('es-AR', {
-        year: '2-digit',
-        month: '2-digit',
-        day: '2-digit'
-    });
-}
-
 function formatDateTime(dateString: string) {
-    return new Date(dateString).toLocaleDateString('es-AR', {
+    return new Date(dateString).toLocaleString('es-AR', {
         year: 'numeric',
-        month: 'short',
-        day: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        hour12: false,
+        timeZone: 'America/Argentina/Buenos_Aires',
     });
 }
 
@@ -155,10 +150,11 @@ export default function PendingOrdersPage() {
                     order.status === 'SUBMITTED' || order.status === 'CANCELED'
                 );
 
-                // Si es vendedor, filtrar solo los pedidos asignados a él
+                // La API ya limita los resultados del vendedor a sus pedidos.
+                // Mantenemos este filtro como defensa adicional en el cliente.
                 if (session?.user.role === "SELLER") {
                     const sellerOrders = pendingOrders.filter((order: Order) =>
-                        order.sellerUser?.email === session.user.email
+                        order.sellerUser?.id === session.user.id
                     );
                     setOrders(sellerOrders);
                     setFilteredOrders(sellerOrders);
@@ -379,7 +375,7 @@ export default function PendingOrdersPage() {
 
         // Los vendedores solo pueden confirmar pedidos que les están asignados
         if (session.user.role === "SELLER") {
-            return order.sellerUser?.email === session.user.email;
+            return order.sellerUser?.id === session.user.id;
         }
 
         return false;
@@ -397,7 +393,7 @@ export default function PendingOrdersPage() {
 
         // Los vendedores solo pueden cancelar pedidos que les están asignados
         if (session.user.role === "SELLER") {
-            return order.sellerUser?.email === session.user.email;
+            return order.sellerUser?.id === session.user.id;
         }
 
         return false;
@@ -547,7 +543,7 @@ export default function PendingOrdersPage() {
                                                 </td>
                                                 <td className="px-4 py-4 text-center">
                                                     <span className="text-xs text-[#646464]">
-                                                        {formatDate(order.submittedAt)}
+                                                        {formatDateTime(order.submittedAt)}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-4 text-center">

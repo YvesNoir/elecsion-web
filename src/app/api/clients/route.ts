@@ -34,7 +34,11 @@ export async function GET(request: NextRequest) {
                         id: true,
                         name: true,
                         email: true,
-                        company: true
+                        company: true,
+                        phone: true,
+                        _count: {
+                            select: { orders: true }
+                        }
                     },
                     orderBy: [
                         { company: "asc" },
@@ -56,7 +60,11 @@ export async function GET(request: NextRequest) {
                         id: true,
                         name: true,
                         email: true,
-                        company: true
+                        company: true,
+                        phone: true,
+                        _count: {
+                            select: { orders: true }
+                        }
                     },
                     orderBy: [
                         { company: "asc" },
@@ -76,7 +84,11 @@ export async function GET(request: NextRequest) {
                         id: true,
                         name: true,
                         email: true,
-                        company: true
+                        company: true,
+                        phone: true,
+                        _count: {
+                            select: { orders: true }
+                        }
                     }
                 });
                 break;

@@ -27,6 +27,7 @@ export async function GET() {
                 name: true,
                 email: true,
                 phone: true,
+                company: true,
                 role: true,
                 isActive: true,
                 deleted: true,

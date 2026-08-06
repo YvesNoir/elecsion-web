@@ -81,19 +81,61 @@ export default async function AccountPage() {
         );
     }
 
-    // Obtener estadísticas de pedidos
-    const orderStats = await prisma.order.groupBy({
-        by: ['status', 'type'],
-        where: {
-            clientUserId: user.id
-        },
-        _count: {
-            id: true
-        },
-        _sum: {
-            total: true
-        }
-    });
+    // Los vendedores necesitan estadísticas de los pedidos asignados a ellos;
+    // los clientes mantienen sus estadísticas sobre sus propios pedidos.
+    const orderStats = user.role === "SELLER"
+        ? []
+        : await prisma.order.groupBy({
+            by: ['status', 'type'],
+            where: {
+                clientUserId: user.id
+            },
+            _count: {
+                id: true
+            },
+            _sum: {
+                total: true
+            }
+        });
+
+    let sellerActivity: {
+        assignedOrders: number;
+        pendingQuotes: number;
+        confirmedAmount: number;
+    } | null = null;
+
+    if (user.role === "SELLER") {
+        const [assignedOrders, pendingQuotes, confirmedOrders] = await Promise.all([
+            prisma.order.count({
+                where: {
+                    sellerUserId: user.id,
+                    type: "ORDER",
+                    status: { not: "CANCELED" },
+                },
+            }),
+            prisma.order.count({
+                where: {
+                    sellerUserId: user.id,
+                    type: "QUOTE",
+                    status: "SUBMITTED",
+                },
+            }),
+            prisma.order.aggregate({
+                where: {
+                    sellerUserId: user.id,
+                    type: "ORDER",
+                    status: "APPROVED",
+                },
+                _sum: { total: true },
+            }),
+        ]);
+
+        sellerActivity = {
+            assignedOrders,
+            pendingQuotes,
+            confirmedAmount: Number(confirmedOrders._sum.total || 0),
+        };
+    }
 
     // Obtener cotizaciones recientes
     const recentQuotes = await prisma.order.findMany({
@@ -190,15 +232,24 @@ export default async function AccountPage() {
                                 <h3 className="text-base font-medium text-[#1C1C1C] mb-3">Resumen de actividad</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     {(() => {
-                                        const totalQuotes = orderStats.filter(stat => stat.type === 'QUOTE').reduce((sum, stat) => sum + stat._count.id, 0);
-                                        const totalAmount = orderStats.reduce((sum, stat) => sum + (stat._sum.total || 0), 0);
-                                        const pendingQuotes = orderStats.filter(stat => stat.type === 'QUOTE' && stat.status === 'SUBMITTED').reduce((sum, stat) => sum + stat._count.id, 0);
+                                        const isSeller = user.role === "SELLER";
+                                        const firstValue = isSeller
+                                            ? sellerActivity?.assignedOrders || 0
+                                            : orderStats.filter(stat => stat.type === 'QUOTE').reduce((sum, stat) => sum + stat._count.id, 0);
+                                        const pendingQuotes = isSeller
+                                            ? sellerActivity?.pendingQuotes || 0
+                                            : orderStats.filter(stat => stat.type === 'QUOTE' && stat.status === 'SUBMITTED').reduce((sum, stat) => sum + stat._count.id, 0);
+                                        const totalAmount = isSeller
+                                            ? sellerActivity?.confirmedAmount || 0
+                                            : orderStats.reduce((sum, stat) => sum + Number(stat._sum.total || 0), 0);
                                         
                                         return (
                                             <>
                                                 <div className="bg-[#F5F5F7] rounded-lg p-4 text-center">
-                                                    <div className="text-2xl font-semibold text-[#1C1C1C]">{totalQuotes}</div>
-                                                    <div className="text-sm text-[#646464]">Cotizaciones totales</div>
+                                                    <div className="text-2xl font-semibold text-[#1C1C1C]">{firstValue}</div>
+                                                    <div className="text-sm text-[#646464]">
+                                                        {isSeller ? "Pedidos asignados" : "Cotizaciones totales"}
+                                                    </div>
                                                 </div>
                                                 <div className="bg-[#F5F5F7] rounded-lg p-4 text-center">
                                                     <div className="text-2xl font-semibold text-[#1C1C1C]">{pendingQuotes}</div>
@@ -208,7 +259,9 @@ export default async function AccountPage() {
                                                     <div className="text-2xl font-semibold text-[#1C1C1C]">
                                                         {totalAmount > 0 ? money(totalAmount) : "—"}
                                                     </div>
-                                                    <div className="text-sm text-[#646464]">Valor total cotizado</div>
+                                                    <div className="text-sm text-[#646464]">
+                                                        {isSeller ? "Valor de pedidos confirmados" : "Valor total cotizado"}
+                                                    </div>
                                                 </div>
                                             </>
                                         );

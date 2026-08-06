@@ -21,6 +21,7 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserMo
         email: "",
         password: "",
         phone: "",
+        company: "",
         role: "CLIENT",
         assignedSellerId: ""
     });
@@ -63,6 +64,7 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserMo
                     email: formData.email,
                     password: formData.password,
                     phone: formData.phone,
+                    company: formData.role === 'CLIENT' ? formData.company : null,
                     role: formData.role,
                     assignedSellerId: formData.role === 'CLIENT' ? formData.assignedSellerId : null
                 }),
@@ -76,6 +78,7 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserMo
                     email: "",
                     password: "",
                     phone: "",
+                    company: "",
                     role: "CLIENT",
                     assignedSellerId: ""
                 });
@@ -203,6 +206,24 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserMo
                                 placeholder="+5491150011976"
                             />
                         </div>
+
+                        {/* Empresa (solo para clientes) */}
+                        {formData.role === 'CLIENT' && (
+                            <div>
+                                <label htmlFor="company" className="block text-sm font-medium text-[#1C1C1C] mb-2">
+                                    Empresa
+                                </label>
+                                <input
+                                    type="text"
+                                    id="company"
+                                    name="company"
+                                    value={formData.company}
+                                    onChange={handleInputChange}
+                                    className="w-full px-3 py-2 border border-[#B5B5B5]/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#384A93] focus:border-transparent transition-colors"
+                                    placeholder="Nombre de la empresa"
+                                />
+                            </div>
+                        )}
 
                         {/* Rol */}
                         <div>

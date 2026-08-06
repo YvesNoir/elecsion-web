@@ -183,6 +183,7 @@ export async function POST(req: Request) {
                 currency: "ARS",
                 clientUserId: clientUserId,
                 sellerUserId: clientUser.assignedSellerId ?? null,
+                submittedAt: new Date(),
                 subtotal,
                 tax,
                 total,
