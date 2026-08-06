@@ -73,8 +73,8 @@ export default function SearchButton() {
         try {
             const response = await fetch(`/api/products/search?q=${encodeURIComponent(term)}`);
             if (response.ok) {
-                const products = await response.json();
-                setSearchResults(products);
+                const data = await response.json();
+                setSearchResults(data.products ?? []);
             }
         } catch (error) {
             console.error("Error searching products:", error);

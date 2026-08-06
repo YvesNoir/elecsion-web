@@ -6,6 +6,8 @@ import ProductImage from "@/components/ProductImage";
 
 type ProductCardGridProps = {
     sku: string | null;
+    articleCode?: string | null;
+    imageCodes?: string[];
     name: string;
     unit: string | null;
     priceBase: number;
@@ -20,6 +22,8 @@ function money(n: number) {
 
 export default function ProductCardGrid({
     sku,
+    articleCode,
+    imageCodes,
     name,
     unit,
     priceBase,
@@ -30,6 +34,7 @@ export default function ProductCardGrid({
     const { addItem } = useCart();
 
     const normalizedSku = sku || "N/A";
+    const internalCode = (articleCode || sku || "").trim();
 
     const handleAddToCart = () => {
         if (qty <= 0) {
@@ -39,8 +44,10 @@ export default function ProductCardGrid({
 
         addItem(
             {
-                id: normalizedSku,
+                id: internalCode,
                 sku: normalizedSku,
+                articleCode: internalCode,
+                imageCodes,
                 name,
                 price: Number(priceBase),
                 currency: "ARS",
@@ -62,6 +69,7 @@ export default function ProductCardGrid({
             <div className="aspect-square bg-[#F5F5F7] flex items-center justify-center">
                 <ProductImage
                     sku={normalizedSku}
+                    imageCodes={imageCodes}
                     alt={normalizedSku}
                     className="w-full h-full object-cover"
                 />

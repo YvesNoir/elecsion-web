@@ -20,8 +20,9 @@ export function sanitizeSkuForFilename(sku: string): string {
  * Genera la URL de la imagen de un producto basado en su SKU
  * Intenta PNG primero desde S3/CloudFront, luego JPG, finalmente placeholder CloudFront
  */
-export function getProductImageUrl(sku: string): string {
-    const sanitizedSku = sanitizeSkuForFilename(sku);
+export function getProductImageUrl(sku: string | string[]): string {
+    const firstSku = Array.isArray(sku) ? sku.find(Boolean) ?? '' : sku;
+    const sanitizedSku = sanitizeSkuForFilename(firstSku);
     if (!sanitizedSku) {
         const cloudFrontUrl = process.env.NEXT_PUBLIC_CLOUDFRONT_URL;
         return cloudFrontUrl ? `${cloudFrontUrl}/product-images/placeholder.png` : `/product-images/placeholder.png`;
@@ -42,12 +43,17 @@ export function getProductImageUrl(sku: string): string {
 /**
  * Genera múltiples URLs de imagen para un SKU (para fallback)
  */
-export function getProductImageUrls(sku: string): string[] {
+export function getProductImageUrls(sku: string | string[]): string[] {
     const cloudFrontUrl = process.env.NEXT_PUBLIC_CLOUDFRONT_URL;
     const placeholderUrl = cloudFrontUrl ? `${cloudFrontUrl}/product-images/placeholder.png` : '/product-images/placeholder.png';
 
-    const sanitizedSku = sanitizeSkuForFilename(sku);
-    if (!sanitizedSku) {
+    const codes = Array.isArray(sku) ? sku : [sku];
+    const sanitizedSkus = Array.from(new Set(codes
+        .filter((code): code is string => typeof code === 'string' && code.trim().length > 0)
+        .map(sanitizeSkuForFilename)
+        .filter(Boolean)));
+
+    if (sanitizedSkus.length === 0) {
         return [placeholderUrl];
     }
 
@@ -57,9 +63,11 @@ export function getProductImageUrls(sku: string): string[] {
     const baseUrl = cloudFrontUrl || `https://${s3Bucket}.s3.${s3Region}.amazonaws.com`;
 
     return [
-        `${baseUrl}/products/${sanitizedSku}.png`,
-        `${baseUrl}/products/${sanitizedSku}.jpg`,
-        `${baseUrl}/products/${sanitizedSku}.jpeg`,
-        placeholderUrl
+        ...sanitizedSkus.flatMap((sanitizedSku) => [
+            `${baseUrl}/products/${sanitizedSku}.png`,
+            `${baseUrl}/products/${sanitizedSku}.jpg`,
+            `${baseUrl}/products/${sanitizedSku}.jpeg`,
+        ]),
+        placeholderUrl,
     ];
 }

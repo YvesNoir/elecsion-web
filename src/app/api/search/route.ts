@@ -16,12 +16,15 @@ export async function GET(req: Request) {
 
         // Log de búsqueda (si falla, no rompemos la respuesta)
         prisma.searchQueryLog.create({
-            data: { userId: session?.sub ?? null, query: q, resultsCount: results.total },
+            data: { userId: session?.user?.id ?? null, query: q, resultsCount: results.total },
         }).catch(() => { /* noop */ });
 
         return json(results, { status: 200 });
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("GET /api/search error:", err);
-        return json({ error: "Internal error", detail: err?.message }, { status: 500 });
+        return json({
+            error: "Internal error",
+            detail: err instanceof Error ? err.message : String(err),
+        }, { status: 500 });
     }
 }

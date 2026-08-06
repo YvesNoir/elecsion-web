@@ -1,6 +1,7 @@
 // src/app/api/catalogo/products/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getTangoBrandNameBySlug, mapTangoProduct, TANGO_WEB_PRICE_LIST_CODE } from "@/lib/products-tango";
 
 export async function GET(req: Request) {
     try {
@@ -11,36 +12,24 @@ export async function GET(req: Request) {
             return NextResponse.json({ products: [] }, { status: 200 });
         }
 
-        const brand = await prisma.brand.findFirst({
-            where: { slug },
-            select: { id: true, name: true },
-        });
-
-        if (!brand) {
+        const brandName = await getTangoBrandNameBySlug(slug);
+        if (!brandName) {
             return NextResponse.json({ products: [] }, { status: 200 });
         }
 
-        const rows = await prisma.product.findMany({
-            where: { brandId: brand.id },
-            orderBy: { name: "asc" },
-            select: {
-                id: true,
-                sku: true,
-                name: true,
-                unit: true,
-                priceBase: true,
-                currency: true,
+        const rows = await prisma.productsTango.findMany({
+            where: {
+                brandName,
+                priceListCode: TANGO_WEB_PRICE_LIST_CODE,
+                isActive: true,
             },
+            orderBy: { articleCode: "asc" },
             take: 200, // por las dudas
         });
 
-        const products = rows.map((r) => ({
-            id: r.id,
-            sku: r.sku,
-            name: r.name,
-            unit: r.unit,
-            price: Number(r.priceBase ?? 0),
-            currency: r.currency || "ARS",
+        const products = rows.map(mapTangoProduct).map((product) => ({
+            ...product,
+            price: product.priceBase,
         }));
 
         return NextResponse.json({ products }, { status: 200 });

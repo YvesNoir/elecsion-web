@@ -1,20 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { getProductImageUrls, sanitizeSkuForFilename } from "@/lib/utils/image";
+import { getProductImageUrls } from "@/lib/utils/image";
 
 type ProductImageProps = {
     sku: string;
+    imageCodes?: string[];
     alt?: string;
     className?: string;
 };
 
-export default function ProductImage({ sku, alt, className }: ProductImageProps) {
+export default function ProductImage({ sku, imageCodes, alt, className }: ProductImageProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [hasError, setHasError] = useState(false);
     const [currentUrlIndex, setCurrentUrlIndex] = useState(0);
 
-    const imageUrls = getProductImageUrls(sku);
+    const imageUrls = getProductImageUrls(imageCodes?.length ? imageCodes : sku);
 
     const handleImageLoad = () => {
         setIsLoading(false);

@@ -1,92 +1,55 @@
-// src/app/api/products/search/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getTangoBrandNameBySlug, mapTangoProduct, TANGO_WEB_PRICE_LIST_CODE } from "@/lib/products-tango";
 
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
-        const query = searchParams.get("q");
-        const brandId = searchParams.get("brand");
+        const query = searchParams.get("q")?.trim() || "";
+        const brandSlug = searchParams.get("brand");
         const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 100);
         const offset = parseInt(searchParams.get("offset") || "0");
 
-        if (!query || query.trim().length < 2) {
-            return NextResponse.json({ products: [] });
-        }
+        if (query.length < 2) return NextResponse.json({ products: [], total: 0 });
 
-        const searchTerm = query.trim();
+        const brandName = brandSlug ? await getTangoBrandNameBySlug(brandSlug) : null;
+        if (brandSlug && !brandName) return NextResponse.json({ products: [], total: 0 });
 
-        // Construir filtros base
-        const whereConditions: any = {
+        const where = {
+            priceListCode: TANGO_WEB_PRICE_LIST_CODE,
             isActive: true,
-            isDeleted: false,
+            ...(brandName ? { brandName } : {}),
             OR: [
-                { sku: { contains: searchTerm, mode: 'insensitive' } },
-                { name: { contains: searchTerm, mode: 'insensitive' } },
-                { description: { contains: searchTerm, mode: 'insensitive' } },
-                { brand: { name: { contains: searchTerm, mode: 'insensitive' } } }
-            ]
+                { articleCode: { contains: query, mode: "insensitive" as const } },
+                { synonym: { contains: query, mode: "insensitive" as const } },
+                { description: { contains: query, mode: "insensitive" as const } },
+                { brandName: { contains: query, mode: "insensitive" as const } },
+            ],
         };
 
-        // Agregar filtro por marca si se especifica
-        if (brandId) {
-            // Si es un UUID/cuid (contiene caracteres que no serían un slug normal), usar brandId directamente
-            if (/^[a-z0-9]{25}$/.test(brandId) || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(brandId)) {
-                whereConditions.brandId = brandId;
-            } else {
-                // Si no es UUID, asumir que es slug
-                whereConditions.brand = { slug: brandId };
-            }
-        }
-
-        // Buscar productos usando Prisma ORM para mejor compatibilidad
-        const [products, total] = await Promise.all([
-            prisma.product.findMany({
-                where: whereConditions,
+        const [rows, total] = await Promise.all([
+            prisma.productsTango.findMany({
+                where,
+                orderBy: [{ articleCode: "asc" }],
+                take: limit,
+                skip: offset,
                 select: {
-                    id: true,
-                    sku: true,
-                    name: true,
-                    priceBase: true,
+                    articleCode: true,
+                    synonym: true,
+                    description: true,
+                    price: true,
                     currency: true,
                     stockQty: true,
-                    unit: true,
-                    brand: {
-                        select: {
-                            name: true,
-                            slug: true
-                        }
-                    }
+                    taxRate: true,
+                    brandName: true,
                 },
-                orderBy: [
-                    { sku: 'asc' },
-                    { name: 'asc' }
-                ],
-                take: limit,
-                skip: offset
             }),
-            prisma.product.count({ where: whereConditions })
+            prisma.productsTango.count({ where }),
         ]);
 
-        // Transformar el resultado para serializarlo
-        const serializedProducts = products.map(product => ({
-            id: product.id,
-            sku: product.sku,
-            name: product.name,
-            priceBase: Number(product.priceBase || 0),
-            currency: product.currency || "ARS",
-            stockQty: product.stockQty ? Number(product.stockQty) : 0,
-            unit: product.unit,
-            brand: product.brand
-        }));
-
-        return NextResponse.json({ products: serializedProducts, total });
-
+        return NextResponse.json({ products: rows.map(mapTangoProduct), total });
     } catch (error) {
-        console.error("Error searching products:", error);
-        return NextResponse.json(
-            { error: "Error interno del servidor" },
-            { status: 500 }
-        );
+        console.error("Error searching Tango products:", error);
+        return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
     }
 }

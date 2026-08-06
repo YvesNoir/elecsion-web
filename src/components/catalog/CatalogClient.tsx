@@ -15,6 +15,8 @@ type Brand = {
 
 type Product = {
     id: string;
+    articleCode?: string;
+    imageCodes?: string[];
     sku: string | null;
     name: string;
     unit: string | null;
@@ -297,6 +299,8 @@ export default function CatalogClient({
                                                 <ProductCardRow
                                                     key={p.id}
                                                     sku={p.sku}
+                                                    articleCode={p.articleCode}
+                                                    imageCodes={p.imageCodes}
                                                     name={p.name}
                                                     unit={p.unit}
                                                     priceBase={p.priceBase}
@@ -315,6 +319,8 @@ export default function CatalogClient({
                                                 <ProductCardGrid
                                                     key={p.id}
                                                     sku={p.sku}
+                                                    articleCode={p.articleCode}
+                                                    imageCodes={p.imageCodes}
                                                     name={p.name}
                                                     unit={p.unit}
                                                     priceBase={p.priceBase}

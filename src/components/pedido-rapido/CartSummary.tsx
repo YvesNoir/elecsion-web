@@ -71,7 +71,7 @@ export default function CartSummary({ selectedClientId }: CartSummaryProps) {
         try {
             // Preparar los items para la API
             const orderItems = cartItems.map(item => ({
-                productId: item.id,
+                productId: item.articleCode || item.id,
                 qty: Number(item.qty)
             }));
 
