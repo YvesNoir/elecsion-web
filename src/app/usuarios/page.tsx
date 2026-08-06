@@ -15,6 +15,7 @@ interface User {
     name: string | null;
     email: string;
     phone: string | null;
+    company: string | null;
     role: string;
     isActive: boolean;
     deleted: boolean;
@@ -63,7 +64,7 @@ export default function UsersPage() {
     const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [roleFilter, setRoleFilter] = useState<string>("ALL");
+    const [roleFilter, setRoleFilter] = useState<"ADMIN" | "CLIENT" | "SELLER">("CLIENT");
     const [confirmModalOpen, setConfirmModalOpen] = useState(false);
     const [userToDelete, setUserToDelete] = useState<{ id: string; name: string; deleted: boolean } | null>(null);
 
@@ -101,27 +102,11 @@ export default function UsersPage() {
         }
     };
 
-    // Filtrar usuarios cuando cambia el filtro de rol
+    // Mostrar únicamente usuarios activos y no eliminados.
     useEffect(() => {
-        let filtered = users;
-        
-        // Por defecto, ocultar usuarios eliminados
-        if (roleFilter !== "DELETED") {
-            filtered = filtered.filter(user => !user.deleted);
-        }
-        
-        // Filtrar por rol
-        if (roleFilter === "ALL" || roleFilter === "DELETED") {
-            // Si es "ALL", ya se filtraron los eliminados arriba
-            // Si es "DELETED", mostrar solo eliminados
-            if (roleFilter === "DELETED") {
-                filtered = users.filter(user => user.deleted);
-            }
-        } else {
-            // Filtrar por rol específico (y ya se excluyeron los eliminados)
-            filtered = filtered.filter(user => user.role === roleFilter);
-        }
-        
+        const filtered = users.filter(user =>
+            user.role === roleFilter && user.isActive && !user.deleted
+        );
         setFilteredUsers(filtered);
     }, [users, roleFilter]);
 
@@ -202,19 +187,8 @@ export default function UsersPage() {
                                 </div>
                                 <div className="flex items-center gap-4">
                                     <div className="text-sm text-[#646464]">
-                                        Total: {filteredUsers.length} usuarios {roleFilter !== "ALL" && `(filtrado por ${roleLabel(roleFilter)})`}
+                                        Total: {filteredUsers.length} usuarios
                                     </div>
-                                    <select
-                                        value={roleFilter}
-                                        onChange={(e) => setRoleFilter(e.target.value)}
-                                        className="text-sm border border-[#B5B5B5]/40 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-[#384A93] focus:border-transparent"
-                                    >
-                                        <option value="ALL">Todos los roles</option>
-                                        <option value="ADMIN">Administradores</option>
-                                        <option value="SELLER">Vendedores</option>
-                                        <option value="CLIENT">Clientes</option>
-                                        <option value="DELETED">Eliminados</option>
-                                    </select>
                                     <button
                                         className="bg-[#384A93] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#2e3d7a] transition-colors flex items-center gap-2"
                                         onClick={() => setIsModalOpen(true)}
@@ -228,15 +202,53 @@ export default function UsersPage() {
                             </div>
                         </div>
 
+                        <div className="px-6 border-b border-[#B5B5B5]/40">
+                            <div className="flex items-center gap-6 overflow-x-auto">
+                                {([
+                                    { value: "CLIENT", label: "Clientes" },
+                                    { value: "SELLER", label: "Vendedores" },
+                                    { value: "ADMIN", label: "Administradores" },
+                                ] as const).map((tab) => {
+                                    const count = users.filter(user =>
+                                        user.role === tab.value && user.isActive && !user.deleted
+                                    ).length;
+
+                                    return (
+                                        <button
+                                            key={tab.value}
+                                            type="button"
+                                            onClick={() => setRoleFilter(tab.value)}
+                                            className={`relative whitespace-nowrap py-3 text-sm transition-colors ${
+                                                roleFilter === tab.value
+                                                    ? "text-[#384A93] font-medium"
+                                                    : "text-[#646464] hover:text-[#1C1C1C]"
+                                            }`}
+                                        >
+                                            {tab.label} ({count})
+                                            {roleFilter === tab.value && (
+                                                <span className="absolute inset-x-0 -bottom-px h-0.5 bg-[#384A93]" />
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
                         <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead className="bg-[#F5F5F7] border-b border-[#B5B5B5]/40">
                                     <tr className="text-left">
                                         <th className="px-6 py-3 text-sm font-medium text-[#1C1C1C]">Usuario</th>
+                                        {roleFilter === "CLIENT" && (
+                                            <th className="px-3 py-3 text-sm font-medium text-[#1C1C1C]">Empresa</th>
+                                        )}
                                         <th className="px-3 py-3 text-sm font-medium text-[#1C1C1C] text-center w-32">Rol</th>
-                                        <th className="px-3 py-3 text-sm font-medium text-[#1C1C1C] text-center w-24">Estado</th>
-                                        <th className="px-3 py-3 text-sm font-medium text-[#1C1C1C]">Vendedor Asignado</th>
-                                        <th className="px-3 py-3 text-sm font-medium text-[#1C1C1C] text-center w-20">Clientes</th>
+                                        {roleFilter === "CLIENT" && (
+                                            <th className="px-3 py-3 text-sm font-medium text-[#1C1C1C]">Vendedor Asignado</th>
+                                        )}
+                                        {roleFilter !== "CLIENT" && (
+                                            <th className="px-3 py-3 text-sm font-medium text-[#1C1C1C] text-center w-20">Clientes</th>
+                                        )}
                                         <th className="px-3 py-3 text-sm font-medium text-[#1C1C1C] text-center w-28">Fecha Registro</th>
                                         <th className="px-3 py-3 text-sm font-medium text-[#1C1C1C] text-center w-10"></th>
                                     </tr>
@@ -254,42 +266,47 @@ export default function UsersPage() {
                                                             {user.name || "Sin nombre"}
                                                             {user.deleted && <span className="ml-2 text-red-500 text-xs">(Eliminado)</span>}
                                                         </div>
-                                                        <div className="text-xs text-[#646464]">
-                                                            {user.email}
-                                                        </div>
+                                                    <div className="text-xs text-[#646464]">
+                                                        {user.email}
                                                     </div>
+                                                    {user.phone && (
+                                                        <div className="text-xs text-[#646464]">
+                                                            {user.phone}
+                                                        </div>
+                                                    )}
                                                 </div>
+                                            </div>
                                             </td>
+                                            {roleFilter === "CLIENT" && (
+                                                <td className="px-3 py-4 text-sm text-[#646464]">
+                                                    {user.company || "—"}
+                                                </td>
+                                            )}
                                             <td className="px-3 py-4 text-center">
                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${roleColor(user.role)}`}>
                                                     {roleLabel(user.role)}
                                                 </span>
                                             </td>
-                                            <td className="px-3 py-4 text-center">
-                                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                                    user.isActive 
-                                                        ? 'bg-green-100 text-green-800' 
-                                                        : 'bg-gray-100 text-gray-800'
-                                                }`}>
-                                                    {user.isActive ? 'Activo' : 'Inactivo'}
-                                                </span>
-                                            </td>
-                                            <td className="px-3 py-4 relative">
-                                                {user.role === 'CLIENT' ? (
-                                                    <SellerSelector
-                                                        userId={user.id}
-                                                        currentSeller={user.assignedSeller}
-                                                        onSellerAssigned={fetchUsers}
-                                                    />
-                                                ) : (
-                                                    <span className="text-[#646464] text-sm">—</span>
-                                                )}
-                                            </td>
-                                            <td className="px-3 py-4 text-center">
-                                                <span className="text-sm font-medium text-[#1C1C1C]">
-                                                    {user.role === 'SELLER' || user.role === 'ADMIN' ? user._count.clients : '—'}
-                                                </span>
-                                            </td>
+                                            {roleFilter === "CLIENT" && (
+                                                <td className="px-3 py-4 relative">
+                                                    {user.role === 'CLIENT' ? (
+                                                        <SellerSelector
+                                                            userId={user.id}
+                                                            currentSeller={user.assignedSeller}
+                                                            onSellerAssigned={fetchUsers}
+                                                        />
+                                                    ) : (
+                                                        <span className="text-[#646464] text-sm">—</span>
+                                                    )}
+                                                </td>
+                                            )}
+                                            {roleFilter !== "CLIENT" && (
+                                                <td className="px-3 py-4 text-center">
+                                                    <span className="text-sm font-medium text-[#1C1C1C]">
+                                                        {user._count.clients}
+                                                    </span>
+                                                </td>
+                                            )}
                                             <td className="px-3 py-4 text-center">
                                                 <span className="text-xs text-[#646464]">
                                                     {new Date(user.createdAt).toLocaleDateString('es-AR')}
@@ -330,28 +347,24 @@ export default function UsersPage() {
                                     <div>
                                         <span className="text-[#646464]">Administradores:</span>
                                         <span className="ml-1 font-medium text-[#1C1C1C]">
-                                            {filteredUsers.filter(u => u.role === 'ADMIN').length}
-                                            {roleFilter === "ALL" && ` / ${users.filter(u => u.role === 'ADMIN').length}`}
+                                            {users.filter(u => u.role === 'ADMIN' && u.isActive && !u.deleted).length}
                                         </span>
                                     </div>
                                     <div>
                                         <span className="text-[#646464]">Vendedores:</span>
                                         <span className="ml-1 font-medium text-[#1C1C1C]">
-                                            {filteredUsers.filter(u => u.role === 'SELLER').length}
-                                            {roleFilter === "ALL" && ` / ${users.filter(u => u.role === 'SELLER').length}`}
+                                            {users.filter(u => u.role === 'SELLER' && u.isActive && !u.deleted).length}
                                         </span>
                                     </div>
                                     <div>
                                         <span className="text-[#646464]">Clientes:</span>
                                         <span className="ml-1 font-medium text-[#1C1C1C]">
-                                            {filteredUsers.filter(u => u.role === 'CLIENT').length}
-                                            {roleFilter === "ALL" && ` / ${users.filter(u => u.role === 'CLIENT').length}`}
+                                            {users.filter(u => u.role === 'CLIENT' && u.isActive && !u.deleted).length}
                                         </span>
                                     </div>
                                 </div>
                                 <div className="text-[#646464]">
-                                    Activos: {filteredUsers.filter(u => u.isActive).length} de {filteredUsers.length}
-                                    {roleFilter !== "ALL" && ` (filtrados)`}
+                                    Activos: {filteredUsers.length} de {filteredUsers.length}
                                 </div>
                             </div>
                         </div>

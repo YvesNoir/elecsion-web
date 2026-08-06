@@ -126,8 +126,14 @@ export default function BrandCarousel({ brands }: BrandCarouselProps) {
         // Removidas del carrusel: rioflex, sixelectric, starbox, tecnocom, yarlux
     ];
 
-    // Combinar marcas existentes con las adicionales
-    const allBrands = [...brandsWithLogos, ...additionalBrands];
+    // Combinar marcas existentes con las adicionales sin repetir una marca.
+    // Las marcas provenientes de Tango usan el slug como id, por lo que una
+    // marca que ya está en la base podía duplicarse con la marca adicional.
+    const allBrands = Array.from(
+        new Map(
+            [...additionalBrands, ...brandsWithLogos].map((brand) => [brand.slug, brand])
+        ).values()
+    );
     
     // Si no hay marcas, mostrar solo SICA como fallback
     const displayBrands = allBrands.length > 0 ? allBrands : [
@@ -178,7 +184,7 @@ export default function BrandCarousel({ brands }: BrandCarouselProps) {
                             const logos = brandLogos[brand.slug];
                             return (
                                 <div
-                                    key={brand.id}
+                                    key={brand.slug}
                                     className="flex-none"
                                     style={{ width: `${100 / itemsToShow}%` }}
                                 >

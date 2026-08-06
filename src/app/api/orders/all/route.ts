@@ -15,8 +15,16 @@ export async function GET() {
             return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
         }
 
-        // Obtener todas las órdenes/cotizaciones
+        if (session.user.role === "SELLER" && !session.user.id) {
+            return NextResponse.json({ error: "Sesión de vendedor inválida" }, { status: 401 });
+        }
+
+        // Los vendedores solo deben recibir pedidos asignados a ellos.
+        // Los administradores pueden consultar todos los pedidos.
         const orders = await prisma.order.findMany({
+            ...(session.user.role === "SELLER"
+                ? { where: { sellerUserId: session.user.id } }
+                : {}),
             orderBy: [
                 { submittedAt: "desc" },
                 { createdAt: "desc" }
@@ -31,6 +39,7 @@ export async function GET() {
                 },
                 sellerUser: {
                     select: {
+                        id: true,
                         name: true,
                         email: true
                     }
@@ -53,7 +62,13 @@ export async function GET() {
             }
         });
 
-        return NextResponse.json(orders);
+        const normalizedOrders = orders.map((order) => ({
+            ...order,
+            // Pedidos rápidos antiguos pueden no tener submittedAt.
+            submittedAt: order.submittedAt ?? order.createdAt,
+        }));
+
+        return NextResponse.json(normalizedOrders);
 
     } catch (error) {
         console.error("Error fetching orders:", error);

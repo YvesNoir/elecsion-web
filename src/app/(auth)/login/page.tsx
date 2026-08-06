@@ -3,7 +3,7 @@
 
 import { FormEvent, useState, useEffect, Suspense } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 function LoginForm() {
@@ -11,7 +11,7 @@ function LoginForm() {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
-    const router = useRouter();
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const callbackUrl = useSearchParams().get("callbackUrl") ?? "/";
 
     useEffect(() => {
@@ -39,29 +39,24 @@ function LoginForm() {
     async function onSubmit(e: FormEvent) {
         e.preventDefault();
         setLoading(true);
+        setErrorMessage(null);
         
         try {
-            console.log("Intentando login con:", { email, passwordLength: password.length });
-            
             const res = await signIn("credentials", {
                 email,
                 password,
                 redirect: false,
                 callbackUrl,
             });
-            
-            console.log("Respuesta de signIn:", res);
-            
+
             if (res?.ok) {
-                console.log("Login exitoso, redirigiendo a:", callbackUrl);
                 window.location.href = callbackUrl; // Usar window.location en lugar de router.push
             } else {
-                console.error("Error de login:", res?.error);
-                alert(`Error de login: ${res?.error || "Credenciales incorrectas"}`);
+                setErrorMessage("El usuario o la contraseña son incorrectos.");
             }
         } catch (error) {
             console.error("Error en signIn:", error);
-            alert(`Error de conexión: ${error}`);
+            setErrorMessage("No pudimos iniciar sesión. Intentá nuevamente.");
         } finally {
             setLoading(false);
         }
@@ -107,6 +102,15 @@ function LoginForm() {
 
                     {/* Formulario */}
                     <div className="p-8">
+                        {errorMessage && (
+                            <div
+                                role="alert"
+                                className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                            >
+                                {errorMessage}
+                            </div>
+                        )}
+
                         <form onSubmit={onSubmit} className="space-y-6">
                             {/* Campo Email */}
                             <div>
@@ -118,7 +122,10 @@ function LoginForm() {
                                         id="email"
                                         type="email"
                                         value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
+                                        onChange={(e) => {
+                                            setEmail(e.target.value);
+                                            setErrorMessage(null);
+                                        }}
                                         className="w-full px-4 py-3 border border-[#B5B5B5]/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#384A93] focus:border-transparent transition-colors bg-[#F5F5F7] hover:bg-white"
                                         placeholder="tu@email.com"
                                         required
@@ -141,7 +148,10 @@ function LoginForm() {
                                         id="password"
                                         type={showPassword ? "text" : "password"}
                                         value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
+                                        onChange={(e) => {
+                                            setPassword(e.target.value);
+                                            setErrorMessage(null);
+                                        }}
                                         className="w-full px-4 py-3 border border-[#B5B5B5]/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#384A93] focus:border-transparent transition-colors bg-[#F5F5F7] hover:bg-white pr-12"
                                         placeholder="Ingresa tu contraseña"
                                     />

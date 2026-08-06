@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { name, email, password, phone, role, assignedSellerId } = body;
+        const { name, email, password, phone, company, role, assignedSellerId } = body;
 
         // Validaciones
         const errors: Record<string, string> = {};
@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
             email: email.toLowerCase(),
             passwordHash,
             phone: phone?.trim() || null,
+            company: role === "CLIENT" ? company?.trim() || null : null,
             role,
             isActive: true,
         };

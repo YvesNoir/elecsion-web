@@ -48,21 +48,15 @@ function money(n: number) {
         .format(Number(n || 0));
 }
 
-function formatDate(dateString: string) {
-    return new Date(dateString).toLocaleDateString('es-AR', {
-        year: '2-digit',
-        month: '2-digit',
-        day: '2-digit'
-    });
-}
-
 function formatDateTime(dateString: string) {
-    return new Date(dateString).toLocaleDateString('es-AR', {
+    return new Date(dateString).toLocaleString('es-AR', {
         year: 'numeric',
-        month: 'short',
-        day: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        hour12: false,
+        timeZone: 'America/Argentina/Buenos_Aires',
     });
 }
 
@@ -359,7 +353,7 @@ export default function ConfirmedOrdersPage() {
                                                 </td>
                                                 <td className="px-4 py-4 text-center">
                                                     <span className="text-xs text-[#646464]">
-                                                        {formatDate(order.submittedAt)}
+                                                        {formatDateTime(order.submittedAt)}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-4 text-center">
