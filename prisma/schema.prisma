@@ -105,6 +105,7 @@ model ProductsTango {
   priceListCode         String   @map("price_list_code")
   priceListDescription  String?  @map("price_list_description")
   price                 Decimal  @db.Decimal(18, 4)
+  offerPrice            Decimal? @map("offer_price") @db.Decimal(18, 4)
   currency              String   @default("ARS")
   stockQty              Decimal? @map("stock_qty") @db.Decimal(18, 4)
   taxRate               Decimal? @map("tax_rate") @db.Decimal(9, 6)

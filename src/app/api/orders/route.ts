@@ -113,6 +113,7 @@ export async function POST(req: Request) {
                 synonym: true,
                 description: true,
                 price: true,
+                offerPrice: true,
                 taxRate: true,
             },
         });
@@ -140,7 +141,7 @@ export async function POST(req: Request) {
                 };
             }
 
-            const base = new Prisma.Decimal(p.price ?? 0);
+            const base = new Prisma.Decimal(p.offerPrice ?? p.price ?? 0);
             const rate = new Prisma.Decimal(p.taxRate ?? 0);
 
             const lineSubtotal = base.mul(q);

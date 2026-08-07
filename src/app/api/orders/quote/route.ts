@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
                 synonym: true,
                 description: true,
                 price: true,
+                offerPrice: true,
             },
         });
 
@@ -100,7 +101,9 @@ export async function POST(request: NextRequest) {
 
             // IMPORTANTE: Usar el precio que viene del carrito (ya convertido a ARS)
             // en lugar del precio original de la base de datos
-            const unitPrice = item.price || Number(product.price);
+            const unitPrice = product.offerPrice !== null && product.offerPrice !== undefined
+                ? Number(product.offerPrice)
+                : item.price || Number(product.price);
             const itemSubtotal = unitPrice * item.quantity;
             subtotal += itemSubtotal;
 

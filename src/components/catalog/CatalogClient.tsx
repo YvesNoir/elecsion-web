@@ -6,6 +6,8 @@ import Link from "next/link";
 import ProductCardRow from "./ProductCardRow";
 import ProductCardGrid from "./ProductCardGrid";
 
+const TANGO_OFFERS_SLUG = "oferta";
+
 type Brand = {
     id: string;
     name: string;
@@ -21,6 +23,7 @@ type Product = {
     name: string;
     unit: string | null;
     priceBase: number;
+    offerPrice: number | null;
     currency: string;
     taxRate: number | null;
     brand: {
@@ -195,7 +198,9 @@ export default function CatalogClient({
                                         >
                                             <span>Todas las marcas</span>
                                             <span className="text-xs">
-                                                {brands.reduce((total, b) => total + b._count.products, 0)}
+                                                {brands
+                                                    .filter((b) => b.slug !== TANGO_OFFERS_SLUG)
+                                                    .reduce((total, b) => total + b._count.products, 0)}
                                             </span>
                                         </Link>
 
@@ -205,10 +210,12 @@ export default function CatalogClient({
                                                 const active = b.slug === currentSlug;
                                                 return (
                                                     <Link
-                                                        key={b.id}
-                                                        href={buildUrl(b.slug, 1, searchTerm)}
-                                                        className={`flex items-center justify-between px-4 py-3 text-sm border-b border-[#B5B5B5]/10 last:border-b-0 transition-colors ${
-                                                            active 
+                                                    key={b.id}
+                                                    href={buildUrl(b.slug, 1, searchTerm)}
+                                                    className={`flex items-center justify-between px-4 py-3 text-sm border-b border-[#B5B5B5]/10 last:border-b-0 transition-colors ${
+                                                            b.slug === TANGO_OFFERS_SLUG
+                                                                ? "bg-[#384A93] text-white font-bold hover:bg-[#2e3d7a]"
+                                                                : active
                                                                 ? "bg-[#384A93]/5 text-[#384A93] font-medium border-l-4 border-l-[#384A93]" 
                                                                 : "text-[#646464] hover:bg-gray-50 hover:text-[#1C1C1C]"
                                                         }`}
@@ -304,6 +311,7 @@ export default function CatalogClient({
                                                     name={p.name}
                                                     unit={p.unit}
                                                     priceBase={p.priceBase}
+                                                    offerPrice={p.offerPrice}
                                                     taxRate={p.taxRate}
                                                                     brand={p.brand}
                                                     isLoggedIn={isLoggedIn}
@@ -324,6 +332,7 @@ export default function CatalogClient({
                                                     name={p.name}
                                                     unit={p.unit}
                                                     priceBase={p.priceBase}
+                                                    offerPrice={p.offerPrice}
                                                     taxRate={p.taxRate}
                                                                     isLoggedIn={isLoggedIn}
                                                 />

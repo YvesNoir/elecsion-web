@@ -4,6 +4,7 @@ import {
     getTangoBrandNameBySlug,
     mapTangoProduct,
     TANGO_WEB_PRICE_LIST_CODE,
+    TANGO_OFFERS_SLUG,
 } from "@/lib/products-tango";
 
 export async function GET(req: Request) {
@@ -17,14 +18,16 @@ export async function GET(req: Request) {
             : (page - 1) * pageSize;
         const brandSlug = searchParams.get("brand");
 
-        const brandName = brandSlug ? await getTangoBrandNameBySlug(brandSlug) : null;
-        if (brandSlug && !brandName) {
+        const isOffersFilter = brandSlug === TANGO_OFFERS_SLUG;
+        const brandName = brandSlug && !isOffersFilter ? await getTangoBrandNameBySlug(brandSlug) : null;
+        if (brandSlug && !brandName && !isOffersFilter) {
             return NextResponse.json({ products: [], total: 0 });
         }
 
         const where = {
             priceListCode: TANGO_WEB_PRICE_LIST_CODE,
             isActive: true,
+            ...(isOffersFilter ? { offerPrice: { not: null } } : {}),
             ...(brandName ? { brandName } : {}),
         };
 
@@ -39,6 +42,7 @@ export async function GET(req: Request) {
                     synonym: true,
                     description: true,
                     price: true,
+                    offerPrice: true,
                     currency: true,
                     stockQty: true,
                     taxRate: true,

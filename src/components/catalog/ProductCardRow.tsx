@@ -12,6 +12,7 @@ type Props = {
     name: string;
     unit?: string | null;
     priceBase: number;
+    offerPrice?: number | null;
     taxRate?: number | null;
     brand?: {
         name: string;
@@ -36,6 +37,7 @@ export default function ProductCardRow({
                                            name,
                                            unit,
                                            priceBase,
+                                           offerPrice,
                                            taxRate,
                                            brand,
                                            isLoggedIn,
@@ -56,8 +58,11 @@ export default function ProductCardRow({
     );
 
     const [qty, setQty] = useState(0);
-    const ivaPct = Number(taxRate ?? 0);
-    const total = useMemo(() => Number(priceBase ?? 0) * qty, [priceBase, qty]);
+    const ivaRate = Number(taxRate ?? 0);
+    const ivaPct = ivaRate > 0 && ivaRate <= 1 ? ivaRate * 100 : ivaRate;
+    const ivaLabel = Number.isInteger(ivaPct) ? `${ivaPct}%` : `${ivaPct.toFixed(1)}%`;
+    const effectivePrice = offerPrice ?? priceBase;
+    const total = useMemo(() => Number(effectivePrice ?? 0) * qty, [effectivePrice, qty]);
 
     const normalizedSku = (sku ?? "").trim();
     const internalCode = (articleCode ?? normalizedSku).trim();
@@ -78,7 +83,7 @@ export default function ProductCardRow({
                     articleCode: internalCode,
                     imageCodes: imageLookupCodes,
                     name,
-                    price: Number(priceBase),
+                    price: Number(effectivePrice),
                     currency: "ARS",
                     unit: unit ?? undefined
                 },
@@ -122,6 +127,11 @@ export default function ProductCardRow({
                                 )}
                             </div>
                             <div className="mt-1 truncate text-[15px] text-[#1C1C1C]">{name}</div>
+                            {offerPrice !== null && offerPrice !== undefined && (
+                                <span className="mt-1 inline-flex rounded-full bg-[#FCE8E8] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#B42318]">
+                                    Oferta
+                                </span>
+                            )}
                             {!!unit && <div className="mt-0.5 text-xs text-[#7a7a7a]">U.M.: {unit}</div>}
                         </div>
                     </div>
@@ -142,9 +152,20 @@ export default function ProductCardRow({
                     <div className="mt-1">
                         {isLoggedIn ? (
                             <div>
-                                <div className="font-medium text-[#1C1C1C]">
-                                    {formatMoney(priceBase)}
-                                </div>
+                                {offerPrice !== null && offerPrice !== undefined ? (
+                                    <>
+                                        <div className="text-sm text-[#7a7a7a] line-through">
+                                            {formatMoney(priceBase)}
+                                        </div>
+                                        <div className="font-semibold text-[#B42318]">
+                                            {formatMoney(offerPrice)}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="font-medium text-[#1C1C1C]">
+                                        {formatMoney(priceBase)}
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             <span className="text-[#384A93] text-sm">Consultar</span>
@@ -156,7 +177,7 @@ export default function ProductCardRow({
                 <div className="col-span-4 md:col-span-1">
                     <div className="text-[11px] uppercase tracking-wide text-[#7a7a7a]">IVA</div>
                     <div className="mt-1 text-[#1C1C1C]">
-                        {Number.isFinite(ivaPct) && ivaPct > 0 ? `${ivaPct.toFixed(1)}%` : "—"}
+                        {Number.isFinite(ivaPct) && ivaPct > 0 ? ivaLabel : "—"}
                     </div>
                 </div>
 
