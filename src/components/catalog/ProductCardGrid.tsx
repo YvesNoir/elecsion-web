@@ -11,6 +11,7 @@ type ProductCardGridProps = {
     name: string;
     unit: string | null;
     priceBase: number;
+    offerPrice?: number | null;
     taxRate: number | null;
     isLoggedIn: boolean;
 };
@@ -27,6 +28,7 @@ export default function ProductCardGrid({
     name,
     unit,
     priceBase,
+    offerPrice,
     taxRate,
     isLoggedIn,
 }: ProductCardGridProps) {
@@ -49,7 +51,7 @@ export default function ProductCardGrid({
                 articleCode: internalCode,
                 imageCodes,
                 name,
-                price: Number(priceBase),
+                price: Number(offerPrice ?? priceBase),
                 currency: "ARS",
                 unit: unit ?? undefined,
             },
@@ -95,8 +97,18 @@ export default function ProductCardGrid({
 
                 {/* Precio */}
                 <div className="mb-3">
+                    {offerPrice !== null && offerPrice !== undefined && (
+                        <span className="mb-1 inline-flex rounded-full bg-[#FCE8E8] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#B42318]">
+                            Oferta
+                        </span>
+                    )}
                     <div className="text-lg font-semibold text-[#1C1C1C]">
-                        {isLoggedIn ? money(priceBase) : (
+                        {isLoggedIn ? (offerPrice !== null && offerPrice !== undefined ? (
+                            <>
+                                <div className="text-sm font-normal text-[#7a7a7a] line-through">{money(priceBase)}</div>
+                                <div className="text-[#B42318]">{money(offerPrice)}</div>
+                            </>
+                        ) : money(priceBase)) : (
                             <span className="text-[#384A93] text-base">Consultar</span>
                         )}
                     </div>

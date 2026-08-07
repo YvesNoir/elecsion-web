@@ -3,9 +3,10 @@ import { getSession } from "@/lib/session";
 import CatalogClient from "@/components/catalog/CatalogClient";
 import {
     getTangoBrandNameBySlug,
-    getTangoBrands,
+    getTangoCatalogBrands,
     mapTangoProduct,
     TANGO_WEB_PRICE_LIST_CODE,
+    TANGO_OFFERS_SLUG,
 } from "@/lib/products-tango";
 
 export const revalidate = 30;
@@ -18,17 +19,21 @@ export default async function CatalogoPage({ searchParams }: Props) {
     const params = await searchParams;
     const session = await getSession();
     const currentSlug = (params?.brand ?? "").toLowerCase().trim();
+    const isOffersFilter = currentSlug === TANGO_OFFERS_SLUG;
     const searchTerm = (params?.search ?? "").trim();
     const currentPage = parseInt(params?.page ?? "1", 10);
     const productsPerPage = 30;
     const skip = (currentPage - 1) * productsPerPage;
-    const selectedBrandName = currentSlug ? await getTangoBrandNameBySlug(currentSlug) : null;
-    const brands = await getTangoBrands();
+    const selectedBrandName = currentSlug && !isOffersFilter
+        ? await getTangoBrandNameBySlug(currentSlug)
+        : null;
+    const brands = await getTangoCatalogBrands();
     const selectedBrand = brands.find((brand) => brand.slug === currentSlug) ?? null;
 
     const baseFilter = {
         priceListCode: TANGO_WEB_PRICE_LIST_CODE,
         isActive: true,
+        ...(isOffersFilter ? { offerPrice: { not: null } } : {}),
         ...(selectedBrandName ? { brandName: selectedBrandName } : {}),
         ...(searchTerm ? {
             OR: [
@@ -52,6 +57,7 @@ export default async function CatalogoPage({ searchParams }: Props) {
                 synonym: true,
                 description: true,
                 price: true,
+                offerPrice: true,
                 currency: true,
                 stockQty: true,
                 taxRate: true,

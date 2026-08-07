@@ -133,6 +133,25 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserMo
                 {/* Formulario */}
                 <form onSubmit={handleSubmit} className="p-6">
                     <div className="space-y-4">
+                        {/* Rol */}
+                        <div>
+                            <label htmlFor="role" className="block text-sm font-medium text-[#1C1C1C] mb-2">
+                                Rol *
+                            </label>
+                            <select
+                                id="role"
+                                name="role"
+                                value={formData.role}
+                                onChange={handleInputChange}
+                                className="w-full px-3 py-2 border border-[#B5B5B5]/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#384A93] focus:border-transparent transition-colors"
+                                required
+                            >
+                                <option value="CLIENT">Cliente</option>
+                                <option value="SELLER">Vendedor</option>
+                                <option value="ADMIN">Administrador</option>
+                            </select>
+                        </div>
+
                         {/* Nombre */}
                         <div>
                             <label htmlFor="name" className="block text-sm font-medium text-[#1C1C1C] mb-2">
@@ -224,25 +243,6 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserMo
                                 />
                             </div>
                         )}
-
-                        {/* Rol */}
-                        <div>
-                            <label htmlFor="role" className="block text-sm font-medium text-[#1C1C1C] mb-2">
-                                Rol *
-                            </label>
-                            <select
-                                id="role"
-                                name="role"
-                                value={formData.role}
-                                onChange={handleInputChange}
-                                className="w-full px-3 py-2 border border-[#B5B5B5]/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#384A93] focus:border-transparent transition-colors"
-                                required
-                            >
-                                <option value="CLIENT">Cliente</option>
-                                <option value="SELLER">Vendedor</option>
-                                <option value="ADMIN">Administrador</option>
-                            </select>
-                        </div>
 
                         {/* Vendedor Asignado (solo para clientes) */}
                         {formData.role === 'CLIENT' && (

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getTangoBrandNameBySlug, mapTangoProduct, TANGO_WEB_PRICE_LIST_CODE } from "@/lib/products-tango";
+import { getTangoBrandNameBySlug, mapTangoProduct, TANGO_OFFERS_SLUG, TANGO_WEB_PRICE_LIST_CODE } from "@/lib/products-tango";
 
 export async function GET(request: NextRequest) {
     try {
@@ -12,12 +12,14 @@ export async function GET(request: NextRequest) {
 
         if (query.length < 2) return NextResponse.json({ products: [], total: 0 });
 
-        const brandName = brandSlug ? await getTangoBrandNameBySlug(brandSlug) : null;
-        if (brandSlug && !brandName) return NextResponse.json({ products: [], total: 0 });
+        const isOffersFilter = brandSlug === TANGO_OFFERS_SLUG;
+        const brandName = brandSlug && !isOffersFilter ? await getTangoBrandNameBySlug(brandSlug) : null;
+        if (brandSlug && !brandName && !isOffersFilter) return NextResponse.json({ products: [], total: 0 });
 
         const where = {
             priceListCode: TANGO_WEB_PRICE_LIST_CODE,
             isActive: true,
+            ...(isOffersFilter ? { offerPrice: { not: null } } : {}),
             ...(brandName ? { brandName } : {}),
             OR: [
                 { articleCode: { contains: query, mode: "insensitive" as const } },
@@ -37,7 +39,8 @@ export async function GET(request: NextRequest) {
                     articleCode: true,
                     synonym: true,
                     description: true,
-                    price: true,
+                price: true,
+                offerPrice: true,
                     currency: true,
                     stockQty: true,
                     taxRate: true,

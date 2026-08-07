@@ -4,6 +4,9 @@ import { slugify } from "@/lib/slug";
 export const TANGO_WEB_PRICE_LIST_CODE =
     process.env.TANGO_WEB_PRICE_LIST_CODE || "WEB";
 
+export const TANGO_OFFERS_SLUG = "oferta";
+export const TANGO_OFFERS_NAME = "Ofertas";
+
 export type TangoCatalogProduct = {
     id: string;
     articleCode: string;
@@ -13,6 +16,7 @@ export type TangoCatalogProduct = {
     name: string;
     unit: string | null;
     priceBase: number;
+    offerPrice: number | null;
     currency: string;
     stockQty: number;
     taxRate: number | null;
@@ -36,6 +40,7 @@ export function mapTangoProduct(row: {
     synonym: string | null;
     description: string;
     price: unknown;
+    offerPrice?: unknown;
     currency: string;
     stockQty: unknown;
     taxRate: unknown;
@@ -54,6 +59,9 @@ export function mapTangoProduct(row: {
         name: row.description,
         unit: null,
         priceBase: Number(row.price || 0),
+        offerPrice: row.offerPrice === null || row.offerPrice === undefined
+            ? null
+            : Number(row.offerPrice),
         currency: row.currency || "ARS",
         stockQty: Number(row.stockQty || 0),
         taxRate: row.taxRate === null || row.taxRate === undefined ? null : Number(row.taxRate),
@@ -91,6 +99,29 @@ export async function getTangoBrands() {
                 _count: { products: group._count._all },
             };
         });
+}
+
+export async function getTangoOfferCount() {
+    return prisma.productsTango.count({
+        where: {
+            priceListCode: TANGO_WEB_PRICE_LIST_CODE,
+            isActive: true,
+            offerPrice: { not: null },
+        },
+    });
+}
+
+export async function getTangoCatalogBrands() {
+    const [brands, offerCount] = await Promise.all([getTangoBrands(), getTangoOfferCount()]);
+
+    return offerCount > 0
+        ? [{
+            id: TANGO_OFFERS_SLUG,
+            name: TANGO_OFFERS_NAME,
+            slug: TANGO_OFFERS_SLUG,
+            _count: { products: offerCount },
+        }, ...brands]
+        : brands;
 }
 
 export async function getTangoBrandNameBySlug(slug: string) {
