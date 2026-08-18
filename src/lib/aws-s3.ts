@@ -1,6 +1,7 @@
 // src/lib/aws-s3.ts
-import { S3Client, PutObjectCommand, HeadObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, HeadObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { randomUUID } from "node:crypto";
 
 // Función para obtener cliente S3 configurado
 function getS3Client() {
@@ -18,7 +19,7 @@ function getBucketName() {
 }
 
 function getCloudFrontUrl() {
-    return process.env.AWS_CLOUDFRONT_URL;
+    return process.env.AWS_CLOUDFRONT_URL || process.env.NEXT_PUBLIC_CLOUDFRONT_URL;
 }
 
 /**
@@ -49,15 +50,39 @@ export async function checkObjectExists(key: string): Promise<boolean> {
         });
         await s3Client.send(command);
         return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const details = error as { name?: string; message?: string; $metadata?: { httpStatusCode?: number } };
         // Si el error es 404 (NotFound), el objeto no existe
-        if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
+        if (details.name === 'NotFound' || details.$metadata?.httpStatusCode === 404) {
             return false;
         }
         // Para otros errores, los registramos pero asumimos que no existe
-        console.warn(`Error checking object existence for ${key}:`, error.message);
+        console.warn(`Error checking object existence for ${key}:`, details.message);
         return false;
     }
+}
+
+/** Obtiene metadatos del objeto luego de una carga directa a S3. */
+export async function getObjectMetadata(key: string) {
+    const s3Client = getS3Client();
+    const response = await s3Client.send(new HeadObjectCommand({
+        Bucket: getBucketName(),
+        Key: key,
+    }));
+
+    return {
+        sizeBytes: Number(response.ContentLength || 0),
+        contentType: response.ContentType || "application/octet-stream",
+    };
+}
+
+/** Elimina un archivo administrativo del almacenamiento. */
+export async function deleteObject(key: string): Promise<void> {
+    const s3Client = getS3Client();
+    await s3Client.send(new DeleteObjectCommand({
+        Bucket: getBucketName(),
+        Key: key,
+    }));
 }
 
 /**
@@ -146,6 +171,23 @@ export function generateProductImageKey(sku: string, extension: string): string 
         .replace(/[\\:*?"<>|\s]/g, '')
         .replace(/[^a-z0-9-]/g, '');
     return `products/${cleanSku}.${extension}`;
+}
+
+/** Genera una key única y legible para un archivo administrativo. */
+export function generateAdminFileKey(fileName: string): string {
+    const extension = fileName.includes(".")
+        ? fileName.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "bin"
+        : "bin";
+    const baseName = fileName
+        .replace(/\.[^/.]+$/, "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 80) || "archivo";
+
+    return `admin-files/${baseName}-${randomUUID()}.${extension}`;
 }
 
 // Export the getter function instead of the client instance
