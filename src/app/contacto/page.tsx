@@ -14,7 +14,7 @@ export default function ContactoPage() {
     const email = "info@elecsion.com";
 
     return (
-        <div className="mx-auto w-full max-w-[1500px] px-6 py-8 text-[#1C1C1C]">
+        <div className="mx-auto w-full max-w-[1500px] px-6 pb-8 pt-12 text-[#1C1C1C]">
             <h1 className="text-2xl font-semibold mb-2">Contactanos</h1>
             <p className="text-gray-600 mb-6">
                 Estamos para ayudarte. Escribinos o visitanos en nuestra sucursal.

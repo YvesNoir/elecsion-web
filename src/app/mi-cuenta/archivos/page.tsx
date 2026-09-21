@@ -4,6 +4,8 @@ import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import AccountSidebar from "@/components/AccountSidebar";
 import FilesManager, { type StoredFileData } from "@/components/admin/FilesManager";
+import PortalClientsUrlField from "@/components/admin/PortalClientsUrlField";
+import { normalizePortalClientsUrl, PORTAL_CLIENTS_URL_KEY } from "@/lib/site-settings";
 
 export default async function ArchivosPage() {
     const session = await getSession();
@@ -23,6 +25,11 @@ export default async function ArchivosPage() {
             createdAt: true,
             uploadedBy: { select: { name: true, email: true } },
         },
+    });
+
+    const portalClientsSetting = await prisma.siteSetting.findUnique({
+        where: { key: PORTAL_CLIENTS_URL_KEY },
+        select: { value: true },
     });
 
     const serializedFiles: StoredFileData[] = files.map((file) => ({
@@ -55,7 +62,8 @@ export default async function ArchivosPage() {
                             </p>
                         </div>
 
-                        <div className="p-6">
+                        <div className="space-y-6 p-6">
+                            <PortalClientsUrlField initialUrl={normalizePortalClientsUrl(portalClientsSetting?.value) ?? ""} />
                             <FilesManager initialFiles={serializedFiles} />
                         </div>
                     </div>

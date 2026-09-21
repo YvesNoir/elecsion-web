@@ -56,7 +56,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
                 <main className="flex-1 bg-white">
                     <div
-                        className="mx-auto w-full px-6 py-8"
+                        className="mx-auto w-full px-6 pb-8 pt-14"
                         style={{ maxWidth: "var(--page-container-max, 1500px)" }}
                     >
                         {children}

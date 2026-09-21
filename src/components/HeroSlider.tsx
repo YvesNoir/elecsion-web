@@ -28,7 +28,7 @@ const slides: Slide[] = [
         description: "Productos confiables con los más exigentes estandares de calidad",
         buttonText: "Ver productos Trefilight",
         buttonLink: "/catalogo?brand=trefilight",
-        backgroundImage: "https://d3o6yucoo1tpxm.cloudfront.net/hero-banners/trefilight-banner.jpg",
+        backgroundImage: "/hero-banner/trefilight-banner-optimized.jpg",
         brandSlug: "sica"
     },
     {
@@ -37,7 +37,7 @@ const slides: Slide[] = [
         description: "Todo lo que necesitás en materiales eléctricos",
         buttonText: "Ver productos Sica",
         buttonLink: "/catalogo",
-        backgroundImage: "https://d3o6yucoo1tpxm.cloudfront.net/hero-banners/sica-banner.jpg"
+        backgroundImage: "/hero-banner/sica-banner-optimized.jpg"
     },
     {
         id: 4,
@@ -45,11 +45,15 @@ const slides: Slide[] = [
         description: "20 años de trayectoria y dedicación en herramientas de mano e industriales",
         buttonText: "Ver productos Rottweiller",
         buttonLink: "/catalogo?brand=tunisan",
-        backgroundImage: "https://d3o6yucoo1tpxm.cloudfront.net/hero-banners/rottweiller-banner.jpg"
+        backgroundImage: "/hero-banner/rottweiller-banner-optimized.jpg"
     }
 ];
 
-export default function HeroSlider() {
+type HeroSliderProps = {
+    className?: string;
+};
+
+export default function HeroSlider({ className = "" }: HeroSliderProps) {
     const [currentSlide, setCurrentSlide] = useState(0);
 
     useEffect(() => {
@@ -73,7 +77,7 @@ export default function HeroSlider() {
     };
 
     return (
-        <div className="relative w-full h-[400px] md:h-[500px] overflow-hidden rounded-lg shadow-lg">
+        <div className={`relative w-full overflow-hidden ${className}`}>
             {/* Slides */}
             {slides.map((slide, index) => (
                 <div

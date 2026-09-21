@@ -36,6 +36,7 @@ model User {
   assignedSeller   User?              @relation("SellerClients", fields: [assignedSellerId], references: [id])
   clients          User[]             @relation("SellerClients")
   uploadedFiles    StoredFile[]
+  updatedSiteSettings SiteSetting[]   @relation("SiteSettingUpdatedBy")
 
   @@map("User")
 }
@@ -151,6 +152,19 @@ model StoredFile {
 
   @@index([createdAt])
   @@map("StoredFile")
+}
+
+/// Configuración global editable por administradores.
+model SiteSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  updatedById String?  @map("updated_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  updatedBy   User?    @relation("SiteSettingUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@map("site_setting")
 }
 
 /// *

@@ -2,7 +2,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import Image from "next/image";
+import { useEffect, useState } from "react";
 import CartToggleButton from "@/components/cart/CartToggleButton";
 
 type HeaderProps = {
@@ -16,119 +17,138 @@ type User = {
     name?: string;
 } | null;
 
+const navLink =
+    "relative inline-flex items-center px-2 py-2 text-sm font-medium text-[#1C1C1C] transition-colors hover:text-[#384A93] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#384A93]/40 focus-visible:ring-offset-2";
+
 export default function Header({ className }: HeaderProps) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [user, setUser] = useState<User>(null);
+    const [portalClientsUrl, setPortalClientsUrl] = useState<string | null>(null);
 
-    // Obtener sesión del usuario
     useEffect(() => {
         const fetchSession = async () => {
             try {
-                const response = await fetch('/api/auth/session');
+                const response = await fetch("/api/auth/session");
                 const data = await response.json();
                 setUser(data.user || null);
             } catch (error) {
-                console.error('Error fetching session:', error);
+                console.error("Error fetching session:", error);
             }
         };
 
         fetchSession();
+
+        const fetchPortalClientsUrl = async () => {
+            try {
+                const response = await fetch("/api/site-settings/portal-clients", { cache: "no-store" });
+                if (!response.ok) return;
+                const data = await response.json();
+                setPortalClientsUrl(data.url || null);
+            } catch (error) {
+                console.error("Error fetching Portal clientes URL:", error);
+            }
+        };
+
+        fetchPortalClientsUrl();
+
+        const handlePortalClientsUrlUpdate = (event: Event) => {
+            const customEvent = event as CustomEvent<{ url?: string }>;
+            setPortalClientsUrl(customEvent.detail?.url || null);
+        };
+
+        window.addEventListener("portal-clients-url-updated", handlePortalClientsUrlUpdate);
+        return () => window.removeEventListener("portal-clients-url-updated", handlePortalClientsUrlUpdate);
     }, []);
 
-    const navLink =
-        "inline-flex items-center gap-1 px-2 py-1 text-sm text-[#1C1C1C] hover:text-[#384A93] transition-colors";
+    const portalHref = portalClientsUrl || (user ? "/mi-cuenta" : "/login");
 
     return (
-        <header className={`w-full bg-white border-b border-[#E5E5E5] ${className ?? ""}`}>
-            <div className="mx-auto w-full max-w-[1500px] px-6">
-                <div className="flex justify-between items-center h-16">
-                    {/* Botón hamburguesa - Solo móvil */}
-                    <button
-                        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                        className="md:hidden p-2 text-[#1C1C1C] hover:text-[#384A93] transition-colors"
-                        aria-label="Abrir menú"
+        <header className={`relative z-50 -mb-16 w-full border-0 outline-none ${className ?? ""}`}>
+            <div className="mx-auto w-full max-w-[1280px] px-4 pt-4 sm:px-6 md:pt-5">
+                <div className="relative rounded-full border-0 bg-white px-4 py-3 shadow-[0_4px_10px_rgba(0,0,0,0.08)] ring-1 ring-black/[0.04] outline-none md:grid md:h-[72px] md:grid-cols-[minmax(170px,1fr)_auto_minmax(170px,1fr)] md:items-center md:px-7 md:py-0">
+                    {/* Logo */}
+                    <Link
+                        href="/"
+                        aria-label="Elecsion, inicio"
+                        className="flex w-fit items-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#384A93]/40 focus-visible:ring-offset-2"
                     >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                    </button>
+                        <Image
+                            src="/logo-elecsion.svg"
+                            alt="Elecsion"
+                            width={191}
+                            height={27}
+                            className="h-3 w-auto md:h-4"
+                        />
+                    </Link>
 
-                    {/* Navegación desktop - Solo desktop */}
-                    <nav className="hidden md:flex items-center gap-6">
+                    {/* Navegación desktop */}
+                    <nav className="hidden items-center justify-center gap-4 md:flex" aria-label="Navegación principal">
                         <Link href="/" className={navLink}>Inicio</Link>
                         <Link href="/catalogo" className={navLink}>Catálogo</Link>
-                        {user && (
-                            <Link href="/pedido-rapido" className={navLink}>Pedido Rápido</Link>
-                        )}
+                        <Link href="/contacto" className={navLink}>Contacto</Link>
+                        {user && <Link href="/pedido-rapido" className={navLink}>Pedido Rápido</Link>}
                     </nav>
 
-                    {/* Logo - Centrado en móvil, izquierda en desktop */}
-                    <div className="flex-1 flex justify-center md:justify-start md:flex-none">
-                        <Link href="/" aria-label="Elecsion">
-                            <img src="/logo-elecsion.svg" alt="Elecsion" className="h-6 md:h-8 w-auto" />
+                    {/* Acciones */}
+                    <div className="hidden items-center justify-end gap-3 md:flex">
+                        <Link
+                            href={portalHref}
+                            target="_blank"
+                            rel="nofollow noopener noreferrer"
+                            className="inline-flex h-11 items-center justify-center rounded-full bg-[#384A93] px-6 text-sm font-semibold text-white transition-colors hover:bg-[#2e3d7a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#384A93]/40 focus-visible:ring-offset-2"
+                        >
+                            Portal Clientes
                         </Link>
-                    </div>
-
-                    {/* Elementos derecha */}
-                    <div className="flex items-center gap-2 md:gap-6">
-                        {/* Mi cuenta / Login - Solo desktop */}
-                        <div className="hidden md:block">
-                            <Link
-                                href={user ? "/mi-cuenta" : "/login"}
-                                className={navLink}
-                            >
-                                {user ? "Mi cuenta" : "Ingresar"}
-                            </Link>
-                        </div>
-
-                        {/* Botón carrito */}
                         <CartToggleButton />
                     </div>
-                </div>
 
-                {/* Menú móvil desplegable */}
-                {mobileMenuOpen && (
-                    <div className="md:hidden bg-white border-t border-[#E5E5E5]">
-                        <nav className="py-4 space-y-3">
-                            <Link
-                                href="/"
-                                className="block px-4 py-2 text-sm text-[#1C1C1C] hover:text-[#384A93] hover:bg-gray-50 transition-colors"
-                                onClick={() => setMobileMenuOpen(false)}
-                            >
-                                Inicio
-                            </Link>
-                            <Link
-                                href="/catalogo"
-                                className="block px-4 py-2 text-sm text-[#1C1C1C] hover:text-[#384A93] hover:bg-gray-50 transition-colors"
-                                onClick={() => setMobileMenuOpen(false)}
-                            >
-                                Catálogo
-                            </Link>
-                            {user && (
-                                <Link
-                                    href="/pedido-rapido"
-                                    className="block px-4 py-2 text-sm text-[#1C1C1C] hover:text-[#384A93] hover:bg-gray-50 transition-colors"
-                                    onClick={() => setMobileMenuOpen(false)}
-                                >
-                                    Pedido Rápido
-                                </Link>
+                    {/* Acciones móviles */}
+                    <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-1 md:hidden">
+                        <CartToggleButton />
+                        <button
+                            type="button"
+                            onClick={() => setMobileMenuOpen((open) => !open)}
+                            className="grid h-10 w-10 place-items-center rounded-full text-[#1C1C1C] transition-colors hover:bg-[#F5F5F7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#384A93]/40"
+                            aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
+                            aria-expanded={mobileMenuOpen}
+                        >
+                            {mobileMenuOpen ? (
+                                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                                    <path d="m6 6 12 12M18 6 6 18" strokeWidth="2" strokeLinecap="round" />
+                                </svg>
+                            ) : (
+                                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                                    <path d="M4 7h16M4 12h16M4 17h16" strokeWidth="2" strokeLinecap="round" />
+                                </svg>
                             )}
-
-                            {/* Separador */}
-                            <div className="border-t border-[#E5E5E5] my-3"></div>
-
-                            {/* Mi cuenta / Login */}
-                            <Link
-                                href={user ? "/mi-cuenta" : "/login"}
-                                className="block px-4 py-2 text-sm text-[#1C1C1C] hover:text-[#384A93] hover:bg-gray-50 transition-colors"
-                                onClick={() => setMobileMenuOpen(false)}
-                            >
-                                {user ? "Mi cuenta" : "Ingresar"}
-                            </Link>
-
-                        </nav>
+                        </button>
                     </div>
-                )}
+
+                    {/* Navegación móvil */}
+                    {mobileMenuOpen && (
+                        <div className="absolute left-0 right-0 top-[calc(100%+0.75rem)] rounded-[1.5rem] bg-white p-3 shadow-[0_8px_16px_rgba(0,0,0,0.10)] ring-1 ring-black/[0.04] md:hidden">
+                            <nav className="grid gap-1" aria-label="Navegación móvil">
+                                <Link href="/" className="rounded-xl px-4 py-3 text-sm font-medium text-[#1C1C1C] hover:bg-[#F5F5F7]" onClick={() => setMobileMenuOpen(false)}>
+                                    Inicio
+                                </Link>
+                                <Link href="/catalogo" className="rounded-xl px-4 py-3 text-sm font-medium text-[#1C1C1C] hover:bg-[#F5F5F7]" onClick={() => setMobileMenuOpen(false)}>
+                                    Catálogo
+                                </Link>
+                                <Link href="/contacto" className="rounded-xl px-4 py-3 text-sm font-medium text-[#1C1C1C] hover:bg-[#F5F5F7]" onClick={() => setMobileMenuOpen(false)}>
+                                    Contacto
+                                </Link>
+                                {user && (
+                                    <Link href="/pedido-rapido" className="rounded-xl px-4 py-3 text-sm font-medium text-[#1C1C1C] hover:bg-[#F5F5F7]" onClick={() => setMobileMenuOpen(false)}>
+                                        Pedido Rápido
+                                    </Link>
+                                )}
+                                <Link href={portalHref} target="_blank" rel="nofollow noopener noreferrer" className="mt-2 inline-flex h-11 items-center justify-center rounded-full bg-[#384A93] px-5 text-sm font-semibold text-white hover:bg-[#2e3d7a]" onClick={() => setMobileMenuOpen(false)}>
+                                    Portal Clientes
+                                </Link>
+                            </nav>
+                        </div>
+                    )}
+                </div>
             </div>
         </header>
     );

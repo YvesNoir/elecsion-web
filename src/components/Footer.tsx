@@ -48,10 +48,8 @@ export default function Footer() {
                     <div>
                         <div className="font-semibold text-[#1C1C1C] mb-3">Links útiles</div>
                         <ul className="space-y-2">
-                            <li><Link href="/catalogo" className="text-[#646464] hover:text-[#384A93]">Sobre nosotros</Link></li>
-                            <li><Link href="/catalogo" className="text-[#646464] hover:text-[#384A93]">Medios de envíos</Link></li>
-                            <li><Link href="/catalogo" className="text-[#646464] hover:text-[#384A93]">Términos y condiciones</Link></li>
-                            <li><Link href="/catalogo" className="text-[#646464] hover:text-[#384A93]">Política de privacidad</Link></li>
+                            <li><Link href="/terminos-y-condiciones" className="text-[#646464] hover:text-[#384A93]">Términos y condiciones</Link></li>
+                            <li><Link href="/politica-de-privacidad" className="text-[#646464] hover:text-[#384A93]">Política de privacidad</Link></li>
                         </ul>
                     </div>
 

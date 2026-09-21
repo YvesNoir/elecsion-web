@@ -116,7 +116,7 @@ export default function CatalogClient({
 
     return (
         <div className="w-full">
-            <div className="mx-auto w-full max-w-[1500px] py-6">
+            <div className="mx-auto w-full max-w-[1500px] pb-6 pt-10">
                 <div className="grid grid-cols-12 gap-6">
                     {/* Sidebar filtros */}
                     <aside className="col-span-12 md:col-span-3">
